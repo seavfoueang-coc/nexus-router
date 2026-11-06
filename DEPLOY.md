@@ -14,16 +14,16 @@ The OmniRoute key service runs as one Coolify app on the same VPS as KHStream (2
   ssh -i $env:USERPROFILE\.ssh\khstream_vps -N -L 20140:127.0.0.1:20140 -L 20128:127.0.0.1:20128 root@217.15.162.153
   ```
   then open http://127.0.0.1:20140 (admin) or http://127.0.0.1:20128 (OmniRoute). Close the window to disconnect.
-- **Data**: Docker volume `router-data` mounted at `/data` (= the old `data\` folder): `storage.sqlite`, `.env`
-  (holds `STORAGE_ENCRYPTION_KEY`; without it provider credentials can't be decrypted), `cli-token-salt.json`,
-  `token-budgets.json`, `admin.json`, `cloudflared/omniroute.json`. Never in Git.
+- **Data**: Docker volume `router-data` mounted at `/data` (= the old `data\` folder): `storage.sqlite`, `.env`,
+  `cli-token-salt.json`, `token-budgets.json`, `admin.json`, `cloudflared/omniroute.json`. Never in Git.
 - **Backups**: nightly `sqlite3 .backup` at ~03:30 into `/data/backups`, kept 14 days; call logs older than 30 days
   are deleted. Copy backups off the server regularly.
 
 ## Corrections to VPS-DEPLOY.md
 - On Linux OmniRoute ignores `HOSTNAME`; the bind setting is `OMNIROUTE_SERVER_HOST`. Inside the container it is
   `0.0.0.0` (the container itself is not reachable from the internet).
-- `STORAGE_ENCRYPTION_KEY` **is** set in `data\.env` now (encryption is on). Copy `.env` exactly.
+- `STORAGE_ENCRYPTION_KEY` is present in `data\.env` but **empty**, so provider credentials are still stored in
+  plaintext (as VPS-DEPLOY.md says). OmniRoute logs a warning about it at startup. Enabling it: VPS-DEPLOY.md 11.4.
 - The CLI token is HMAC(machine id, salt). The container mounts the host's `/etc/machine-id` read-only so the token
   stays stable across redeploys; it is derived at runtime, nothing to copy.
 
