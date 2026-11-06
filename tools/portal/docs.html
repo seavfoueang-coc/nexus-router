@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>API docs</title>
+<meta name="description" content="How to connect to the API: base URL, authentication, endpoints, code examples and token limits.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111111'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%23F7F6F3' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif&display=swap">
+<style>
+  :root {
+    --canvas: #F7F6F3; --surface: #FFFFFF; --surface-2: #FBFBFA; --code: #F3F2EE;
+    --ink: #111111; --ink-2: #2F3437; --muted: #787774; --faint: #A5A29C;
+    --line: #EAEAEA; --line-strong: #DCDAD5;
+    --red-bg: #FDEBEC; --red: #9F2F2D; --blue-bg: #E1F3FE; --blue: #1F6C9F;
+    --green-bg: #EDF3EC; --green: #346538; --yellow-bg: #FBF3DB; --yellow: #956400;
+    --sans: "Geist", "SF Pro Display", "Helvetica Neue", "Segoe UI Variable Text", system-ui, sans-serif;
+    --serif: "Instrument Serif", "Newsreader", Georgia, serif;
+    --mono: "Geist Mono", "SF Mono", "JetBrains Mono", Consolas, monospace;
+    --tok-key: #9F2F2D; --tok-str: #346538; --tok-num: #1F6C9F; --tok-com: #A5A29C;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas: #121211; --surface: #1A1A19; --surface-2: #1E1E1C; --code: #171716;
+      --ink: #EEEDEA; --ink-2: #D6D4CF; --muted: #8F8C86; --faint: #66645F;
+      --line: #2A2927; --line-strong: #353431;
+      --red-bg: #3A1F1E; --red: #F2A49F; --blue-bg: #17303F; --blue: #8CC6EC;
+      --green-bg: #1D2D1E; --green: #9CCB9F; --yellow-bg: #362C14; --yellow: #E6C277;
+      --tok-key: #F2A49F; --tok-str: #9CCB9F; --tok-num: #8CC6EC; --tok-com: #66645F;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+  body { margin: 0; background: var(--canvas); color: var(--ink-2); font: 15px/1.7 var(--sans); -webkit-font-smoothing: antialiased; }
+  a { color: var(--blue); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 4px; }
+
+  /* top bar */
+  .top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--canvas) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .top-in { max-width: 1180px; margin: 0 auto; height: 60px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); font-weight: 600; text-decoration: none; letter-spacing: -0.01em; }
+  .brand-mark { width: 24px; height: 24px; border-radius: 6px; background: var(--ink); display: grid; place-items: center; }
+  .brand-mark span { width: 10px; height: 10px; border-radius: 50%; border: 2.5px solid var(--canvas); }
+  .brand small { font: 12px var(--mono); color: var(--muted); font-weight: 400; }
+  .top nav { display: flex; gap: 6px; }
+  .top nav a { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 6px; color: var(--ink-2); text-decoration: none; font-size: 14px; font-weight: 500; }
+  .top nav a:hover { background: var(--code); }
+  .top nav a.cta { background: var(--ink); color: var(--canvas); }
+  .top nav a.cta:hover { opacity: .88; background: var(--ink); }
+
+  /* layout */
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; }
+  .toc { position: sticky; top: 84px; align-self: start; padding: 32px 0; max-height: calc(100vh - 84px); overflow-y: auto; }
+  .toc .h { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 12px 10px; }
+  .toc a { display: block; padding: 5px 10px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 14px; border-left: 2px solid transparent; }
+  .toc a:hover { color: var(--ink); }
+  .toc a.on { color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .toc a.sub { padding-left: 22px; font-size: 13px; }
+  main { min-width: 0; padding: 32px 0 96px; }
+
+  /* hero */
+  .hero { padding: 24px 0 36px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .hero h1 { font: 400 clamp(40px, 6vw, 60px)/1.04 var(--serif); color: var(--ink); letter-spacing: -0.02em; margin: 14px 0 14px; }
+  .hero p { margin: 0; max-width: 62ch; color: var(--muted); font-size: 16px; }
+  .facts { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1.15fr) minmax(0, .8fr); gap: 12px; margin-top: 28px; }
+  .fact { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+  .fact .k { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .fact .v { display: flex; align-items: center; gap: 8px; margin-top: 10px; font: 500 14px var(--mono); color: var(--ink); min-width: 0; }
+  .fact .v code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: none; border: 0; padding: 0; font-size: 13.5px; }
+
+  /* content */
+  section { padding-top: 40px; }
+  h2 { font: 400 34px/1.1 var(--serif); color: var(--ink); letter-spacing: -0.02em; margin: 0 0 14px; }
+  h3 { font-size: 16px; font-weight: 600; color: var(--ink); margin: 30px 0 10px; letter-spacing: -0.005em; }
+  p { margin: 0 0 14px; max-width: 72ch; }
+  ul, ol { padding-left: 20px; margin: 0 0 14px; max-width: 72ch; }
+  li { margin: 4px 0; }
+  li::marker { color: var(--faint); }
+  code { font: 13px var(--mono); background: var(--code); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; color: var(--ink); overflow-wrap: anywhere; }
+  strong { color: var(--ink); font-weight: 600; }
+
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 18px 0 0; max-width: none; }
+  .steps > li { counter-increment: s; position: relative; padding: 0 0 22px 44px; margin: 0; border-left: 1px solid var(--line); margin-left: 13px; }
+  .steps > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  .steps > li::before { content: counter(s); position: absolute; left: -14px; top: -2px; width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: var(--canvas); font: 500 13px/28px var(--mono); text-align: center; }
+  .steps > li > strong:first-child { display: block; margin-bottom: 4px; }
+
+  /* code blocks */
+  .code { position: relative; margin: 14px 0 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--code); overflow: hidden; }
+  .code-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 8px 0 12px; height: 40px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+  .tabs { display: flex; gap: 2px; overflow-x: auto; }
+  .tabs button, .code-head .lang { height: 28px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font: 500 12.5px var(--sans); cursor: pointer; white-space: nowrap; }
+  .code-head .lang { cursor: default; padding-left: 0; font-family: var(--mono); font-size: 12px; }
+  .tabs button:hover { color: var(--ink); }
+  .tabs button.on { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+  .copy { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--ink-2); font: 500 12px var(--sans); cursor: pointer; flex: none; }
+  .copy:hover { border-color: var(--line-strong); }
+  .copy svg { width: 13px; height: 13px; }
+  pre { margin: 0; padding: 16px 18px; overflow-x: auto; font: 13px/1.65 var(--mono); color: var(--ink-2); tab-size: 2; }
+  pre .k { color: var(--tok-key); } pre .s { color: var(--tok-str); } pre .n { color: var(--tok-num); } pre .c { color: var(--tok-com); font-style: italic; }
+  .pane { display: none; } .pane.on { display: block; }
+
+  /* tables */
+  .table { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); margin: 14px 0 18px; }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 12px 14px; border-bottom: 1px solid var(--line); background: var(--surface-2); white-space: nowrap; }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td code { white-space: nowrap; }
+  .method { display: inline-block; min-width: 44px; text-align: center; font: 500 11px/1 var(--mono); padding: 4px 6px; border-radius: 4px; }
+  .method.get { background: var(--blue-bg); color: var(--blue); }
+  .method.post { background: var(--green-bg); color: var(--green); }
+  .status { font: 500 12.5px var(--mono); padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+  .status.r { background: var(--red-bg); color: var(--red); } .status.y { background: var(--yellow-bg); color: var(--yellow); }
+
+  .note { display: flex; gap: 12px; padding: 14px 16px; border-radius: 10px; margin: 16px 0; font-size: 14px; max-width: 72ch; }
+  .note svg { width: 18px; height: 18px; flex: none; margin-top: 2px; }
+  .note.blue { background: var(--blue-bg); color: var(--blue); }
+  .note.yellow { background: var(--yellow-bg); color: var(--yellow); }
+  .note p { margin: 0; } .note strong { color: inherit; }
+  .note code { background: color-mix(in srgb, currentColor 10%, transparent); border-color: transparent; color: inherit; }
+
+  .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  .card h4 { margin: 0 0 8px; font-size: 15px; color: var(--ink); }
+  .card p { margin: 0; font-size: 14px; color: var(--muted); }
+  .card .tag { display: inline-block; margin-top: 12px; font: 12px var(--mono); padding: 2px 8px; border-radius: 4px; background: var(--code); border: 1px solid var(--line); color: var(--ink-2); }
+
+  details { border-bottom: 1px solid var(--line); padding: 4px 0; max-width: 72ch; }
+  summary { cursor: pointer; list-style: none; padding: 12px 0; font-weight: 500; color: var(--ink); display: flex; justify-content: space-between; gap: 12px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; font: 400 20px/1 var(--mono); color: var(--muted); }
+  details[open] summary::after { content: "−"; }
+  details > div { padding: 0 0 14px; color: var(--ink-2); }
+
+  footer { margin-top: 64px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--faint); font-size: 13px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+  @media (max-width: 920px) {
+    .wrap { grid-template-columns: 1fr; gap: 0; }
+    .toc { display: none; }
+    .facts, .cards { grid-template-columns: 1fr; }
+    .top nav a:not(.cta) { display: none; }
+    .brand small { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-copy" viewBox="0 0 256 256"><path fill="currentColor" d="M216 28H88a12 12 0 0 0-12 12v36H40a12 12 0 0 0-12 12v128a12 12 0 0 0 12 12h128a12 12 0 0 0 12-12v-36h36a12 12 0 0 0 12-12V40a12 12 0 0 0-12-12Zm-60 176H52V100h104Zm48-48h-24V88a12 12 0 0 0-12-12h-68V52h104Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 256 256"><path fill="currentColor" d="m232.49 80.49-128 128a12 12 0 0 1-17 0l-56-56a12 12 0 1 1 17-17L96 183 215.51 63.51a12 12 0 0 1 17 17Z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 256 256"><path fill="currentColor" d="M108 84a16 16 0 1 1 16 16 16 16 0 0 1-16-16Zm128 44A108 108 0 1 1 128 20a108.12 108.12 0 0 1 108 108Zm-24 0a84 84 0 1 0-84 84 84.09 84.09 0 0 0 84-84Zm-72 36.68V132a20 20 0 0 0-20-20 12 12 0 0 0-4 23.32V168a20 20 0 0 0 20 20 12 12 0 0 0 4-23.32Z"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 256 256"><path fill="currentColor" d="M128 20a108 108 0 1 0 108 108A108.12 108.12 0 0 0 128 20Zm0 192a84 84 0 1 1 84-84 84.09 84.09 0 0 1-84 84Zm-12-80V80a12 12 0 0 1 24 0v52a12 12 0 0 1-24 0Zm28 40a16 16 0 1 1-16-16 16 16 0 0 1 16 16Z"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="/docs"><div class="brand-mark"><span></span></div>API docs <small data-host></small></a>
+    <nav><a href="#quickstart">Quick start</a><a href="#endpoints">Endpoints</a><a href="#errors">Errors</a><a class="cta" href="/">Check my balance</a></nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <aside class="toc" aria-label="On this page">
+    <div class="h">On this page</div>
+    <a href="#quickstart">Quick start</a>
+    <a href="#auth">Authentication</a>
+    <a href="#endpoints">Endpoints</a>
+    <a href="#chat" class="sub">Chat completions</a>
+    <a href="#messages" class="sub">Claude messages</a>
+    <a href="#responses" class="sub">Responses</a>
+    <a href="#streaming" class="sub">Streaming</a>
+    <a href="#models">Models</a>
+    <a href="#examples">Code examples</a>
+    <a href="#apps">Use with apps</a>
+    <a href="#tokens">Tokens and limits</a>
+    <a href="#errors">Errors</a>
+    <a href="#faq">FAQ</a>
+  </aside>
+
+  <main>
+    <div class="hero">
+      <div class="eyebrow">Developer guide</div>
+      <h1>Connect to the API</h1>
+      <p>One endpoint that works with OpenAI and Anthropic (Claude) clients. Bring the API key you were given, point your app at the base URL below, and pick a model your key is allowed to use.</p>
+      <div class="facts">
+        <div class="fact"><div class="k">Base URL</div><div class="v"><code data-base></code><button class="copy" data-copy-base aria-label="Copy base URL"><svg><use href="#i-copy"/></svg></button></div></div>
+        <div class="fact"><div class="k">Auth header</div><div class="v"><code>Authorization: Bearer sk-…</code></div></div>
+        <div class="fact"><div class="k">Formats</div><div class="v"><code>OpenAI · Anthropic</code></div></div>
+      </div>
+    </div>
+
+    <!-- ================= QUICK START ================= -->
+    <section id="quickstart">
+      <h2>Quick start</h2>
+      <ol class="steps">
+        <li><strong>Get your API key</strong>It starts with <code>sk-</code> and was sent to you by the owner. Keep it private; anyone with the key can spend its tokens.</li>
+        <li><strong>Check your balance and models</strong>Open the <a href="/">balance page</a> and paste your key. It shows how many tokens you have left and which models your key can use.</li>
+        <li><strong>Send your first request</strong>Replace <code>YOUR_API_KEY</code> and the model with your own.
+          <div class="code" data-tabs>
+            <div class="code-head"><div class="tabs"><button class="on">cURL</button><button>Python</button><button>JavaScript</button></div><button class="copy"><svg><use href="#i-copy"/></svg>Copy</button></div>
+<pre class="pane on" data-lang="sh">curl {{BASE}}/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "{{MODEL}}",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'</pre>
+<pre class="pane" data-lang="py"># pip install openai
+from openai import OpenAI
+
+client = OpenAI(base_url="{{BASE}}", api_key="YOUR_API_KEY")
+
+reply = client.chat.completions.create(
+    model="{{MODEL}}",
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+print(reply.choices[0].message.content)</pre>
+<pre class="pane" data-lang="js">// npm install openai
+import OpenAI from "openai";
+
+const client = new OpenAI({ baseURL: "{{BASE}}", apiKey: "YOUR_API_KEY" });
+
+const reply = await client.chat.completions.create({
+  model: "{{MODEL}}",
+  messages: [{ role: "user", content: "Hello!" }],
+});
+console.log(reply.choices[0].message.content);</pre>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ================= AUTH ================= -->
+    <section id="auth">
+      <h2>Authentication</h2>
+      <p>Send your key with every request. Either header works on every endpoint:</p>
+      <div class="table"><div class="table-scroll"><table>
+        <thead><tr><th>Header</th><th>Example</th><th>Used by</th></tr></thead>
+        <tbody>
+          <tr><td><code>Authorization</code></td><td><code>Authorization: Bearer sk-…</code></td><td>OpenAI SDKs, most apps</td></tr>
+          <tr><td><code>x-api-key</code></td><td><code>x-api-key: sk-…</code></td><td>Anthropic (Claude) SDKs</td></tr>
+        </tbody>
+      </table></div></div>
+      <div class="note yellow"><svg><use href="#i-warn"/></svg><p><strong>Do not put your key in a website or mobile app that other people download.</strong> Anyone can read it from there. Call the API from your own server or computer instead.</p></div>
+    </section>
+
+    <!-- ================= ENDPOINTS ================= -->
+    <section id="endpoints">
+      <h2>Endpoints</h2>
+      <p>All paths are relative to <code data-origin></code>.</p>
+      <div class="table"><div class="table-scroll"><table>
+        <thead><tr><th>Method</th><th>Path</th><th>What it does</th><th>Format</th></tr></thead>
+        <tbody>
+          <tr><td><span class="method get">GET</span></td><td><code>/v1/models</code></td><td>List the models your key can use</td><td>OpenAI</td></tr>
+          <tr><td><span class="method post">POST</span></td><td><code>/v1/chat/completions</code></td><td>Chat, with streaming and tool calling</td><td>OpenAI</td></tr>
+          <tr><td><span class="method post">POST</span></td><td><code>/v1/messages</code></td><td>Chat in Claude's native format</td><td>Anthropic</td></tr>
+          <tr><td><span class="method post">POST</span></td><td><code>/v1/responses</code></td><td>OpenAI Responses API</td><td>OpenAI</td></tr>
+        </tbody>
+      </table></div></div>
+
+      <h3 id="chat">Chat completions</h3>
+      <p><code>POST /v1/chat/completions</code> accepts the standard OpenAI body: <code>model</code>, <code>messages</code>, and optional <code>max_tokens</code>, <code>temperature</code>, <code>stream</code>, <code>tools</code>.</p>
+      <div class="code"><div class="code-head"><span class="lang">Response</span><button class="copy"><svg><use href="#i-copy"/></svg>Copy</button></div>
+<pre data-lang="json">{
+  "id": "chatcmpl-1793610548953",
+  "object": "chat.completion",
+  "model": "claude-opus-5.5",
+  "choices": [{
+    "index": 0,
+    "finish_reason": "stop",
+    "message": { "role": "assistant", "content": "Hi. What are you working on?" }
+  }],
+  "usage": { "prompt_tokens": 379, "completion_tokens": 9, "total_tokens": 388 }
+}</pre></div>
+
+      <h3 id="messages">Claude messages</h3>
+      <p><code>POST /v1/messages</code> takes Anthropic's format, so the official Claude SDKs and tools work without changes. <code>max_tokens</code> is required in this format.</p>
+      <div class="code"><div class="code-head"><span class="lang">cURL</span><button class="copy"><svg><use href="#i-copy"/></svg>Copy</button></div>
+<pre data-lang="sh">curl {{ORIGIN}}/v1/messages \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "{{MODEL}}",
+    "max_tokens": 1024,
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'</pre></div>
+
+      <h3 id="responses">Responses</h3>
+      <p><code>POST /v1/responses</code> follows OpenAI's Responses API, used by newer OpenAI SDK features and some agents.</p>
+      <div class="code"><div class="code-head"><span class="lang">cURL</span><button class="copy"><svg><use href="#i-copy"/></svg>Copy</button></div>
+<pre data-lang="sh">curl {{BASE}}/responses \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "{{MODEL}}", "input": "Hello!"}'</pre></div>
+
+      <h3 id="streaming">Streaming</h3>
+      <p>Add <code>"stream": true</code> to get the answer piece by piece as it is written. The response uses Server-Sent Events: lines starting with <code>data:</code>, ending with <code>data: [DONE]</code>.</p>
+      <div class="code" data-tabs>
+        <div class="code-head"><div class="tabs"><button class="on">Python</button><button>JavaScript</button><button>cURL</button></div><button class="copy"><svg><use href="#i-copy"/></svg>Copy</button></div>
+<pre class="pane on" data-lang="py">stream = client.chat.completions.create(
+    model="{{MODEL}}",
+    messages=[{"role": "user", "content": "Write a short poem."}],
+    stream=True,
+)
+for chunk in stream:
+    print(chunk.choices[0].delta.content or "", end="", flush=True)</pre>
+<pre class="pane" data-lang="js">const stream = await client.chat.completions.create({
+  model: "{{MODEL}}",
+  messages: [{ role: "user", content: "Write a short poem." }],
+  stream: true,
+});
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content ?? "");
+}</pre>
+<pre class="pane" data-lang="sh">curl -N {{BASE}}/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "{{MODEL}}", "stream": true,
+       "messages": [{"role": "user", "content": "Write a short poem."}]}'</pre>
+      </div>
+    </section>
+
+    <!-- ================= MODELS ================= -->
+    <section id="models">
+      <h2>Models</h2>
+      <p>Each key can only use the models the owner allowed for it. To see yours, open the <a href="/">balance page</a> or call <code>GET /v1/models</code>:</p>
+      <div class="code"><div class="code-head"><span class="lang">cURL</span><button class="copy"><svg><use href="#i-copy"/></svg>Copy</button></div>
+<pre data-lang="sh">curl {{BASE}}/models -H "Authorization: Bearer YOUR_API_KEY"</pre></div>
+      <p>Use the model ID exactly as listed, for example <code>{{MODEL}}</code>. Asking for any other model returns <span class="status r">403</span> <em>Model … is not allowed for this API key</em>.</p>
+    </section>
+
+    <!-- ================= EXAMPLES ================= -->
+    <section id="examples">
+      <h2>Code examples</h2>
+
+      <h3>Claude SDK (Anthropic format)</h3>
+      <p>Set the base URL to the site address <strong>without</strong> <code>/v1</code>. The Anthropic SDK adds <code>/v1/messages</code> itself.</p>
+      <div class="code" data-tabs>
+        <div class="code-head"><div class="tabs"><button class="on">Python</button><button>JavaScript</button></div><button class="copy"><svg><use href="#i-copy"/></svg>Copy</button></div>
+<pre class="pane on" data-lang="py"># pip install anthropic
+import anthropic
+
+client = anthropic.Anthropic(base_url="{{ORIGIN}}", api_key="YOUR_API_KEY")
+
+message = client.messages.create(
+    model="{{MODEL}}",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+print(message.content[0].text)</pre>
+<pre class="pane" data-lang="js">// npm install @anthropic-ai/sdk
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic({ baseURL: "{{ORIGIN}}", apiKey: "YOUR_API_KEY" });
+
+const message = await client.messages.create({
+  model: "{{MODEL}}",
+  max_tokens: 1024,
+  messages: [{ role: "user", content: "Hello!" }],
+});
+console.log(message.content[0].text);</pre>
+      </div>
+
+      <h3>Tool calling</h3>
+      <p>Describe functions in <code>tools</code>. When the model wants one, the reply has <code>finish_reason: "tool_calls"</code>; run the function and send the result back as a <code>tool</code> message.</p>
+      <div class="code"><div class="code-head"><span class="lang">Python</span><button class="copy"><svg><use href="#i-copy"/></svg>Copy</button></div>
+<pre data-lang="py">tools = [{
+    "type": "function",
+    "function": {
+        "name": "get_weather",
+        "description": "Get the current weather for a city",
+        "parameters": {
+            "type": "object",
+            "properties": {"city": {"type": "string"}},
+            "required": ["city"],
+        },
+    },
+}]
+
+reply = client.chat.completions.create(
+    model="{{MODEL}}",
+    messages=[{"role": "user", "content": "Weather in Bangkok?"}],
+    tools=tools,
+)
+print(reply.choices[0].message.tool_calls)</pre></div>
+
+      <h3>Keep the key out of your code</h3>
+      <p>Store the key in an environment variable and read it at run time:</p>
+      <div class="code" data-tabs>
+        <div class="code-head"><div class="tabs"><button class="on">Windows</button><button>macOS / Linux</button></div><button class="copy"><svg><use href="#i-copy"/></svg>Copy</button></div>
+<pre class="pane on" data-lang="sh">setx OPENAI_BASE_URL "{{BASE}}"
+setx OPENAI_API_KEY "YOUR_API_KEY"
+:: open a new terminal afterwards</pre>
+<pre class="pane" data-lang="sh">export OPENAI_BASE_URL="{{BASE}}"
+export OPENAI_API_KEY="YOUR_API_KEY"
+# add these lines to ~/.zshrc or ~/.bashrc to keep them</pre>
+      </div>
+      <p>The OpenAI SDKs read <code>OPENAI_BASE_URL</code> and <code>OPENAI_API_KEY</code> automatically, so <code>OpenAI()</code> then needs no arguments.</p>
+    </section>
+
+    <!-- ================= APPS ================= -->
+    <section id="apps">
+      <h2>Use with apps</h2>
+      <p>Most AI coding tools have an <em>OpenAI-compatible</em> or <em>custom provider</em> option. Use these values:</p>
+      <div class="table"><div class="table-scroll"><table>
+        <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>Provider type</td><td>OpenAI Compatible</td></tr>
+          <tr><td>Base URL</td><td><code data-base></code></td></tr>
+          <tr><td>API key</td><td>your <code>sk-…</code> key</td></tr>
+          <tr><td>Model</td><td>a model ID from your <a href="/">balance page</a></td></tr>
+        </tbody>
+      </table></div></div>
+      <div class="cards">
+        <div class="card"><h4>Cline, Roo Code, Kilo Code</h4><p>Settings → API Provider → <strong>OpenAI Compatible</strong>, then enter the base URL, key and model ID.</p><span class="tag">OpenAI format</span></div>
+        <div class="card"><h4>Continue</h4><p>Add a model with <code>provider: openai</code>, <code>apiBase</code> set to the base URL, and your key as <code>apiKey</code>.</p><span class="tag">OpenAI format</span></div>
+        <div class="card"><h4>Open WebUI, LibreChat, Chatbox</h4><p>Add an OpenAI-compatible connection with the base URL and key. Models from <code>/v1/models</code> appear automatically.</p><span class="tag">OpenAI format</span></div>
+        <div class="card"><h4>Claude Code</h4><p>Set two environment variables, then run <code>claude</code>:<br><code>ANTHROPIC_BASE_URL=<span data-origin></span></code><br><code>ANTHROPIC_AUTH_TOKEN=YOUR_API_KEY</code></p><span class="tag">Anthropic format</span></div>
+      </div>
+      <div class="note blue"><svg><use href="#i-info"/></svg><p>Coding tools send a lot of context with every message (your files, the chat so far, tool descriptions), so they use tokens much faster than a simple chat. Watch your <a href="/">balance page</a>.</p></div>
+    </section>
+
+    <!-- ================= TOKENS ================= -->
+    <section id="tokens">
+      <h2>Tokens and limits</h2>
+      <p>A token is a small piece of text, roughly ¾ of an English word. Your key has a token limit set by the owner.</p>
+      <ul>
+        <li><strong>What counts:</strong> input tokens (everything you send, including earlier messages and system prompts) <strong>plus</strong> output tokens (the answer).</li>
+        <li><strong>Every request has extra input.</strong> Even "Hello" costs a few hundred input tokens, because instructions are added to each request.</li>
+        <li><strong>Exact usage</strong> is in every response under <code>usage</code>, and on the <a href="/">balance page</a>.</li>
+      </ul>
+      <div class="cards">
+        <div class="card"><h4>One-time balance</h4><p>A fixed number of tokens that never resets. When it is used up, the key stops working until the owner adds more.</p></div>
+        <div class="card"><h4>Daily, weekly or monthly</h4><p>The count starts over each period, at 00:00 UTC. Weekly limits reset on Monday; monthly ones on the 1st.</p></div>
+      </div>
+      <p>A key can also have an <strong>expiry date</strong>, after which it stops working. Both are shown on the balance page.</p>
+      <h3>When you run out</h3>
+      <p>Requests are refused with <span class="status y">429</span> and <code>"code": "token_limit_exceeded"</code>:</p>
+      <div class="code"><div class="code-head"><span class="lang">Response</span><button class="copy"><svg><use href="#i-copy"/></svg>Copy</button></div>
+<pre data-lang="json">{
+  "error": {
+    "message": "Out of tokens. This API key has used its full one-time 50M token limit. This limit does not reset.",
+    "type": "rate_limit_error",
+    "code": "token_limit_exceeded"
+  }
+}</pre></div>
+      <p>A request that is already running finishes normally, so the last request can go slightly over the limit.</p>
+    </section>
+
+    <!-- ================= ERRORS ================= -->
+    <section id="errors">
+      <h2>Errors</h2>
+      <p>Errors come back as JSON with an <code>error.message</code> that explains the problem.</p>
+      <div class="table"><div class="table-scroll"><table>
+        <thead><tr><th>Status</th><th>Meaning</th><th>What to do</th></tr></thead>
+        <tbody>
+          <tr><td><span class="status r">400</span></td><td>The request body is invalid.</td><td>Check the JSON and required fields such as <code>model</code> and <code>messages</code>.</td></tr>
+          <tr><td><span class="status r">401</span></td><td>No key was sent, the key is wrong, or the key was turned off.</td><td>Check the header and the key. If it still fails, ask the owner.</td></tr>
+          <tr><td><span class="status r">403</span></td><td>The model is not allowed for your key, or the key has expired.</td><td>Use a model from your balance page, or ask the owner to extend the key.</td></tr>
+          <tr><td><span class="status y">429</span></td><td>Out of tokens (<code>token_limit_exceeded</code>), or too many requests at once.</td><td>Wait for the reset shown on your balance page, or ask for more tokens.</td></tr>
+          <tr><td><span class="status r">502</span> <span class="status r">503</span></td><td>The service or the AI provider is temporarily unavailable.</td><td>Wait a moment and try again.</td></tr>
+        </tbody>
+      </table></div></div>
+    </section>
+
+    <!-- ================= FAQ ================= -->
+    <section id="faq">
+      <h2>FAQ</h2>
+      <details><summary>Which base URL do I use, with or without /v1?</summary><div>OpenAI SDKs and most apps: <code data-base></code>. Anthropic (Claude) SDKs and Claude Code: <code data-origin></code>, because they add <code>/v1</code> themselves.</div></details>
+      <details><summary>How do I see how many tokens I have left?</summary><div>Open the <a href="/">balance page</a> and paste your key. It shows tokens left, input and output used, when it resets, and when the key expires.</div></details>
+      <details><summary>Why did a short message use hundreds of tokens?</summary><div>Each request includes instructions and, in chats, all earlier messages. These count as input tokens. Starting a new conversation keeps requests smaller.</div></details>
+      <details><summary>Can I use another model?</summary><div>Only the models allowed for your key work. Ask the owner if you need a different one.</div></details>
+      <details><summary>My key stopped working. Why?</summary><div>It ran out of tokens, expired, or was turned off by the owner. The balance page shows which one.</div></details>
+      <details><summary>I think my key leaked. What should I do?</summary><div>Tell the owner right away so they can turn it off and give you a new one. Anyone with your key can use your tokens.</div></details>
+    </section>
+
+    <footer><span>Questions or need more tokens? Contact the person who gave you your key.</span><a href="/">Check my balance →</a></footer>
+  </main>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const ORIGIN = location.origin;
+  const BASE = ORIGIN + "/v1";
+  const MODEL = "kr/claude-opus-5.5";
+  const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+  // Light syntax colouring for the examples.
+  function highlight(src, lang) {
+    let s = esc(src);
+    const hold = [];
+    const keep = (re, cls) => { s = s.replace(re, (m) => { hold.push(`<span class="${cls}">${m}</span>`); return `\u0000${hold.length - 1}\u0000`; }); };
+    if (lang === "py" || lang === "sh") keep(/(^|\s)(#|::)[^\n]*/g, "c");
+    if (lang === "js") keep(/\/\/[^\n]*/g, "c");
+    keep(/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g, "s");
+    if (lang === "json") s = s.replace(/\b(true|false|null|\d+(?:\.\d+)?)\b/g, '<span class="n">$1</span>');
+    if (lang === "py") s = s.replace(/\b(from|import|for|in|print|True|False|None)\b/g, '<span class="k">$1</span>');
+    if (lang === "js") s = s.replace(/\b(import|from|const|await|for|of|new|true|false)\b/g, '<span class="k">$1</span>');
+    if (lang === "sh") s = s.replace(/(^|\n)(\s*)(curl|export|setx)\b/g, '$1$2<span class="k">$3</span>');
+    return s.replace(/\u0000(\d+)\u0000/g, (_, i) => hold[i]);
+  }
+
+  document.querySelectorAll("pre").forEach((pre) => {
+    const raw = pre.textContent.replaceAll("{{BASE}}", BASE).replaceAll("{{ORIGIN}}", ORIGIN).replaceAll("{{MODEL}}", MODEL);
+    pre.dataset.raw = raw;
+    pre.innerHTML = highlight(raw, pre.dataset.lang);
+  });
+  document.querySelectorAll("p, td, li, .card p, details div").forEach((el) => {
+    if (el.innerHTML.includes("{{MODEL}}")) el.innerHTML = el.innerHTML.replaceAll("{{MODEL}}", MODEL);
+  });
+  document.querySelectorAll("[data-base]").forEach((el) => (el.textContent = BASE));
+  document.querySelectorAll("[data-origin]").forEach((el) => (el.textContent = ORIGIN));
+  document.querySelectorAll("[data-host]").forEach((el) => (el.textContent = location.host));
+
+  // Tabs
+  document.querySelectorAll("[data-tabs]").forEach((box) => {
+    const btns = box.querySelectorAll(".tabs button"), panes = box.querySelectorAll(".pane");
+    btns.forEach((b, i) => b.addEventListener("click", () => {
+      btns.forEach((x) => x.classList.toggle("on", x === b));
+      panes.forEach((p, j) => p.classList.toggle("on", j === i));
+    }));
+  });
+
+  // Copy buttons
+  async function copyText(text, btn) {
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch {
+      const ta = document.createElement("textarea"); ta.value = text; document.body.append(ta); ta.select();
+      try { ok = document.execCommand("copy"); } catch {} ta.remove();
+    }
+    const old = btn.innerHTML;
+    btn.innerHTML = `<svg><use href="#i-${ok ? "check" : "copy"}"/></svg>${btn.hasAttribute("data-copy-base") ? "" : ok ? "Copied" : "Press Ctrl+C"}`;
+    setTimeout(() => (btn.innerHTML = old), 1500);
+  }
+  document.querySelectorAll(".code .copy").forEach((btn) => btn.addEventListener("click", () => {
+    const box = btn.closest(".code"), pre = box.querySelector("pre.pane.on") || box.querySelector("pre");
+    copyText(pre.dataset.raw, btn);
+  }));
+  document.querySelectorAll("[data-copy-base]").forEach((btn) => btn.addEventListener("click", () => copyText(BASE, btn)));
+
+  // Highlight the section being read.
+  const links = [...document.querySelectorAll(".toc a")];
+  const targets = links.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) links.forEach((a) => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id));
+    });
+  }, { rootMargin: "-90px 0px -70% 0px" });
+  targets.forEach((t) => io.observe(t));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+# OmniRoute key service on the shared VPS, deployed by Coolify (Build pack: Docker Compose).
+# No public domain in Coolify: the public address api.nexus-api.tech comes in through the Cloudflare Tunnel
+# that runs inside the container. Ports 20128 (OmniRoute dashboard) and 20140 (admin dashboard) are published
+# on the server's loopback only; open them from your PC with an SSH tunnel (see DEPLOY.md).
+services:
+  router:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATA_DIR: /data
+      TZ: ${TZ:-Asia/Phnom_Penh}
+      # Inside the container only; the container is not reachable from the internet.
+      OMNIROUTE_SERVER_HOST: 0.0.0.0
+      ADMIN_HOST: 0.0.0.0
+      # Turn the tunnel on only after the data is copied and the PC's tunnel is stopped (one connector at a time).
+      TUNNEL_ENABLED: ${TUNNEL_ENABLED:-false}
+      TUNNEL_HOSTNAME: ${TUNNEL_HOSTNAME:-api.nexus-api.tech}
+    volumes:
+      - router-data:/data
+      # Stable machine id, so OmniRoute's CLI token stays the same across redeploys.
+      - /etc/machine-id:/etc/machine-id:ro
+    ports:
+      - "127.0.0.1:20128:20128"
+      - "127.0.0.1:20140:20140"
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://127.0.0.1:20130/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+    mem_limit: 2g
+
+volumes:
+  router-data:

@@ -1,0 +1,9 @@
+.git
+data
+app/node_modules
+*.cmd
+*.md
+*.log
+*.pid
+.env
+.env.*

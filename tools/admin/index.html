@@ -1,0 +1,1115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Admin · API keys</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111111'/%3E%3Cpath d='M10 16h12M16 10v12' stroke='%23F7F6F3' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif&display=swap">
+<style>
+  :root {
+    --canvas: #F7F6F3; --surface: #FFFFFF; --surface-2: #FBFBFA; --hover: #F3F2EE;
+    --ink: #111111; --ink-2: #2F3437; --muted: #787774; --faint: #A5A29C;
+    --line: #EAEAEA; --line-strong: #DCDAD5;
+    --btn: #111111; --btn-hover: #333333; --btn-ink: #FFFFFF;
+    --red-bg: #FDEBEC; --red: #9F2F2D; --blue-bg: #E1F3FE; --blue: #1F6C9F;
+    --green-bg: #EDF3EC; --green: #346538; --yellow-bg: #FBF3DB; --yellow: #956400;
+    --sans: "Geist", "SF Pro Display", "Helvetica Neue", "Segoe UI Variable Text", system-ui, sans-serif;
+    --serif: "Instrument Serif", "Newsreader", Georgia, serif;
+    --mono: "Geist Mono", "SF Mono", "JetBrains Mono", Consolas, monospace;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --side: 232px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas: #121211; --surface: #1A1A19; --surface-2: #1E1E1C; --hover: #232321;
+      --ink: #EEEDEA; --ink-2: #D6D4CF; --muted: #8F8C86; --faint: #66645F;
+      --line: #2A2927; --line-strong: #353431;
+      --btn: #EEEDEA; --btn-hover: #D6D4CF; --btn-ink: #121211;
+      --red-bg: #3A1F1E; --red: #F2A49F; --blue-bg: #17303F; --blue: #8CC6EC;
+      --green-bg: #1D2D1E; --green: #9CCB9F; --yellow-bg: #362C14; --yellow: #E6C277;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--canvas); color: var(--ink-2); font: 14px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 6px; }
+  .hidden { display: none !important; }
+  .num { font-variant-numeric: tabular-nums; }
+  .mono { font-family: var(--mono); }
+  .muted { color: var(--muted); }
+  .serif { font-family: var(--serif); font-weight: 400; color: var(--ink); letter-spacing: -0.02em; }
+  .eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  svg.i { width: 16px; height: 16px; flex: none; }
+
+  /* ---------- buttons ---------- */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border: 1px solid var(--btn); border-radius: 6px; background: var(--btn); color: var(--btn-ink); font-weight: 500; transition: background .15s, border-color .15s, transform .1s; white-space: nowrap; }
+  .btn:hover { background: var(--btn-hover); border-color: var(--btn-hover); }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .5; cursor: default; transform: none; }
+  .btn.ghost { background: var(--surface); color: var(--ink-2); border-color: var(--line); }
+  .btn.ghost:hover { background: var(--surface-2); border-color: var(--line-strong); }
+  .btn.danger { background: var(--red); border-color: var(--red); color: #fff; }
+  @media (prefers-color-scheme: dark) { .btn.danger { color: #1A1A19; } }
+  .btn.sm { height: 30px; padding: 0 10px; font-size: 13px; }
+  .icon-btn { width: 32px; height: 32px; display: inline-grid; place-items: center; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--muted); }
+  .icon-btn:hover { background: var(--hover); color: var(--ink); }
+
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 9999px; font: 500 10.5px/1.3 var(--mono); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.green { background: var(--green-bg); color: var(--green); }
+  .pill.red { background: var(--red-bg); color: var(--red); }
+  .pill.yellow { background: var(--yellow-bg); color: var(--yellow); }
+  .pill.gray { background: var(--hover); color: var(--muted); }
+  .tag { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 4px; border: 1px solid var(--line); background: var(--surface-2); font: 11.5px/1.5 var(--mono); color: var(--ink-2); white-space: nowrap; }
+  .tag.blue { background: var(--blue-bg); color: var(--blue); border-color: transparent; }
+
+  /* ---------- layout ---------- */
+  .app { display: grid; grid-template-columns: var(--side) 1fr; min-height: 100vh; }
+  .side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 20px 14px; border-right: 1px solid var(--line); background: var(--surface-2); }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 22px; color: var(--ink); font-weight: 600; letter-spacing: -0.01em; }
+  .brand-mark { width: 24px; height: 24px; border-radius: 6px; background: var(--ink); display: grid; place-items: center; color: var(--canvas); }
+  .brand small { display: block; font: 11px var(--mono); color: var(--muted); font-weight: 400; }
+  .nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav a { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; color: var(--ink-2); text-decoration: none; font-weight: 500; }
+  .nav a:hover { background: var(--hover); }
+  .nav a.active { background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+  .nav a .count { margin-left: auto; font: 11px var(--mono); color: var(--muted); }
+  .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .side-foot a, .side-foot button { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 6px; color: var(--muted); text-decoration: none; background: none; border: 0; text-align: left; font-size: 13px; }
+  .side-foot a:hover, .side-foot button:hover { background: var(--hover); color: var(--ink); }
+
+  .main { min-width: 0; padding: 28px 36px 60px; }
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+  .page-head h1 { margin: 6px 0 0; font-size: 38px; line-height: 1.05; }
+  .page-head p { margin: 6px 0 0; color: var(--muted); }
+  .head-actions { display: flex; gap: 8px; align-items: center; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  .card-pad { padding: 20px 22px; }
+  .card-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .card-title h3 { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink); }
+
+  .grid { display: grid; gap: 12px; }
+  .g-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .g-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  a.card.stat:hover { border-color: var(--line-strong); }
+  .g-3 { grid-template-columns: 2fr 1fr; }
+  .g-2 { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 1180px) { .g-4, .g-5 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g-5 .span-all { grid-column: 1 / -1; } .g-3, .g-2 { grid-template-columns: 1fr; } }
+
+  .stat .v { font-size: 40px; line-height: 1; margin: 14px 0 6px; }
+  .stat .v small { font-size: .45em; color: var(--muted); margin-left: 3px; }
+  .stat .split { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--muted); }
+  .stat .split b { font: 500 12.5px var(--mono); color: var(--ink-2); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+  .dot.in { background: var(--blue); } .dot.out { background: var(--green); }
+
+  /* ---------- chart ---------- */
+  .chart { width: 100%; height: 220px; display: block; }
+  .chart .bar-in { fill: var(--blue); opacity: .85; }
+  .chart .bar-out { fill: var(--green); opacity: .85; }
+  .chart .grid-line { stroke: var(--line); stroke-width: 1; }
+  .chart text { fill: var(--faint); font: 10.5px var(--mono); }
+  .chart .hit { fill: transparent; }
+  .chart .hit:hover { fill: var(--hover); }
+  .chart-wrap { position: relative; }
+  .tooltip { position: absolute; pointer-events: none; z-index: 5; padding: 8px 10px; border-radius: 8px; background: var(--ink); color: var(--canvas); font-size: 12px; line-height: 1.5; white-space: nowrap; transform: translateX(-50%); box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+  .tooltip b { font-weight: 600; }
+  .legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--muted); }
+
+  /* ---------- tables ---------- */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; background: var(--surface); position: sticky; top: 0; }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr.click { cursor: pointer; }
+  tbody tr.click:hover td { background: var(--surface-2); }
+  td.r, th.r { text-align: right; }
+  .kname { font-weight: 600; color: var(--ink); }
+  .ksub { font: 11.5px var(--mono); color: var(--faint); }
+  .meter { width: 150px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; display: flex; }
+  .meter i { display: block; height: 100%; }
+  .meter .in { background: var(--blue); } .meter .out { background: var(--green); } .meter .over { background: var(--red); }
+  .meter-cap { font: 11.5px var(--mono); color: var(--muted); margin-top: 5px; }
+  .empty { padding: 40px 20px; text-align: center; color: var(--muted); }
+  .empty .serif { font-size: 26px; display: block; margin-bottom: 6px; }
+
+  .list-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .list-row:last-child { border-bottom: 0; }
+  .list-row .grow { flex: 1; min-width: 0; }
+  .list-row .name { font-weight: 500; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .list-row a { color: inherit; text-decoration: none; }
+  .hbar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 6px; overflow: hidden; }
+  .hbar i { display: block; height: 100%; background: var(--ink-2); opacity: .7; }
+
+  /* ---------- toolbar ---------- */
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .search { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; min-width: 240px; flex: 0 1 320px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--muted); }
+  .search input { border: 0; outline: 0; background: transparent; flex: 1; min-width: 0; color: var(--ink); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { height: 30px; padding: 0 11px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+  .chip:hover { border-color: var(--line-strong); }
+  .chip.on { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+  .chip .n { font: 11px var(--mono); opacity: .7; }
+
+  /* ---------- drawer & modal ---------- */
+  .scrim { position: fixed; inset: 0; background: rgba(17,17,17,.28); z-index: 40; opacity: 0; animation: fade .2s ease forwards; }
+  @keyframes fade { to { opacity: 1; } }
+  .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(720px, 100vw); z-index: 41; background: var(--canvas); border-left: 1px solid var(--line); overflow-y: auto; transform: translateX(24px); opacity: 0; animation: slide .35s var(--ease) forwards; }
+  @keyframes slide { to { transform: none; opacity: 1; } }
+  .drawer-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 24px; background: color-mix(in srgb, var(--canvas) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .drawer-body { padding: 22px 24px 40px; display: flex; flex-direction: column; gap: 12px; }
+  .modal { position: fixed; left: 50%; top: 50%; z-index: 51; width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.12); transform: translate(-50%, -48%); opacity: 0; animation: pop .3s var(--ease) forwards; }
+  .modal.narrow { width: min(460px, calc(100vw - 32px)); }
+  @keyframes pop { to { transform: translate(-50%, -50%); opacity: 1; } }
+  .scrim.top { z-index: 50; }
+  .modal-head { padding: 20px 24px 0; }
+  .modal-head h2 { margin: 0; font-size: 28px; line-height: 1.1; }
+  .modal-head p { margin: 6px 0 0; color: var(--muted); }
+  .modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+  .modal-foot { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: 8px; padding: 14px 24px; border-top: 1px solid var(--line); background: var(--surface); }
+  .modal-foot .left { margin-right: auto; color: var(--red); font-size: 13px; align-self: center; }
+
+  /* ---------- forms ---------- */
+  .field label, .field .label { display: block; font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 8px; }
+  .field .hint, .hint { font-size: 12.5px; color: var(--muted); margin-top: 7px; }
+  .input { width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface-2); color: var(--ink); outline: none; transition: border-color .15s, box-shadow .15s; }
+  .input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(17,17,17,.06); }
+  .input.mono { font-family: var(--mono); }
+  .input-row { display: flex; gap: 8px; align-items: center; }
+  .seg { display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); flex-wrap: wrap; }
+  .seg button { height: 32px; padding: 0 13px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-weight: 500; font-size: 13px; }
+  .seg button:hover { color: var(--ink); }
+  .seg button.on { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(0,0,0,.04); }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .presets button { height: 26px; padding: 0 9px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface); font: 12px var(--mono); color: var(--ink-2); }
+  .presets button:hover { border-color: var(--line-strong); }
+  .model-picker { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .model-picker .mp-head { display: flex; gap: 8px; align-items: center; padding: 8px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+  .model-picker .mp-head input { flex: 1; height: 32px; border: 1px solid var(--line); border-radius: 6px; padding: 0 10px; background: var(--surface); outline: none; min-width: 0; }
+  .model-picker .mp-list { max-height: 260px; overflow-y: auto; }
+  .mp-group { padding: 8px 12px 4px; display: flex; justify-content: space-between; align-items: center; font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--surface); position: sticky; top: 0; }
+  .mp-group button { border: 0; background: none; color: var(--blue); font: 12px var(--sans); text-transform: none; letter-spacing: 0; padding: 0; }
+  .mp-item { display: flex; align-items: center; gap: 10px; padding: 6px 12px; cursor: pointer; font: 12.5px var(--mono); color: var(--ink-2); }
+  .mp-item:hover { background: var(--surface-2); }
+  .mp-item input { accent-color: var(--ink); }
+  .mp-foot { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); background: var(--surface-2); }
+  .mp-foot button { border: 0; background: none; color: var(--blue); font-size: 12.5px; padding: 0; }
+  .selected-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .selected-tags .tag { gap: 6px; }
+  .selected-tags .tag button { border: 0; background: none; padding: 0; color: var(--muted); line-height: 1; }
+
+  .secret-box { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line-strong); }
+  .secret-box code { flex: 1; min-width: 0; font: 14px var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+  .callout { display: flex; gap: 10px; padding: 12px 14px; border-radius: 8px; font-size: 13px; }
+  .callout.yellow { background: var(--yellow-bg); color: var(--yellow); }
+  .callout.red { background: var(--red-bg); color: var(--red); }
+  .callout.blue { background: var(--blue-bg); color: var(--blue); }
+  .kv { display: grid; grid-template-columns: 140px 1fr; gap: 10px 16px; font-size: 13.5px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; color: var(--ink-2); min-width: 0; overflow-wrap: anywhere; }
+
+  .balance-big { font-size: 64px; line-height: 1; }
+  .balance-big small { font-size: .38em; color: var(--muted); margin-left: 4px; }
+  .bigbar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; display: flex; margin: 18px 0 10px; }
+  .bigbar i { display: block; height: 100%; }
+  .bigbar .in { background: var(--blue); } .bigbar .out { background: var(--green); } .bigbar .over { background: var(--red); }
+
+  .switch { position: relative; width: 34px; height: 20px; flex: none; }
+  .switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .switch span { position: absolute; inset: 0; border-radius: 10px; background: var(--line-strong); transition: background .15s; pointer-events: none; }
+  .switch span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .2s var(--ease); }
+  .switch input:checked + span { background: var(--green); }
+  .switch input:checked + span::after { transform: translateX(14px); }
+  .switch input:disabled + span { opacity: .5; }
+
+  /* ---------- menu, toast ---------- */
+  .menu { position: fixed; z-index: 60; min-width: 180px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.10); }
+  .menu button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 0; border-radius: 5px; background: none; text-align: left; font-size: 13px; color: var(--ink-2); }
+  .menu button:hover { background: var(--hover); }
+  .menu button.danger { color: var(--red); }
+  .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+  .toasts { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 70; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .toast { padding: 10px 14px; border-radius: 8px; background: var(--ink); color: var(--canvas); font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.14); animation: pop2 .3s var(--ease); }
+  .toast.err { background: var(--red); color: #fff; }
+  @keyframes pop2 { from { transform: translateY(8px); opacity: 0; } }
+
+  /* ---------- sign in ---------- */
+  .signin { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+  .signin .box { width: min(420px, 100%); }
+  .signin h1 { font-size: 46px; line-height: 1.05; margin: 14px 0 10px; }
+  .signin p { color: var(--muted); margin: 0 0 26px; }
+  .signin .card { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+  .err { color: var(--red); font-size: 13px; background: var(--red-bg); padding: 9px 12px; border-radius: 6px; }
+
+  .skel { height: 14px; border-radius: 4px; background: linear-gradient(90deg, var(--line), var(--surface-2), var(--line)); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  .spin { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .reveal { opacity: 0; transform: translateY(10px); animation: rise .5s var(--ease) forwards; animation-delay: calc(var(--i, 0) * 60ms); }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  @media (max-width: 860px) {
+    .app { grid-template-columns: 1fr; }
+    .side { position: static; height: auto; flex-direction: row; align-items: center; padding: 10px 12px; gap: 10px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    .brand { padding: 0 8px 0 0; }
+    .brand small { display: none; }
+    .nav { flex-direction: row; }
+    .nav a .count { display: none; }
+    .side-foot { margin: 0 0 0 auto; padding: 0; border: 0; flex-direction: row; }
+    .side-foot .lbl { display: none; }
+    .main { padding: 20px 16px 48px; }
+    .page-head h1 { font-size: 30px; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; animation-delay: 0ms !important; transition-duration: .001ms !important; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-bolt" viewBox="0 0 256 256"><path fill="currentColor" d="M223.69 114.12a12 12 0 0 0-7.39-8.5l-55.53-20.83 13-65a12 12 0 0 0-20.55-10.5l-112 120a12 12 0 0 0 4.5 19.35l55.53 20.83-13 65a12 12 0 0 0 20.55 10.5l112-120a12 12 0 0 0 2.89-10.85Zm-108.9 76.37 7-35.13a12 12 0 0 0-7.55-13.56l-48.66-18.25 69.6-74.57-7 35.13a12 12 0 0 0 7.55 13.56l48.66 18.25Z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 256 256"><path fill="currentColor" d="M104 36H56a20 20 0 0 0-20 20v48a20 20 0 0 0 20 20h48a20 20 0 0 0 20-20V56a20 20 0 0 0-20-20Zm-4 64H60V60h40Zm100-64h-48a20 20 0 0 0-20 20v48a20 20 0 0 0 20 20h48a20 20 0 0 0 20-20V56a20 20 0 0 0-20-20Zm-4 64h-40V60h40Zm-92 32H56a20 20 0 0 0-20 20v48a20 20 0 0 0 20 20h48a20 20 0 0 0 20-20v-48a20 20 0 0 0-20-20Zm-4 64H60v-40h40Zm100-64h-48a20 20 0 0 0-20 20v48a20 20 0 0 0 20 20h48a20 20 0 0 0 20-20v-48a20 20 0 0 0-20-20Zm-4 64h-40v-40h40Z"/></symbol>
+  <symbol id="i-key" viewBox="0 0 256 256"><path fill="currentColor" d="M216.57 39.43A80 80 0 0 0 83.91 120.78L28.69 176A15.86 15.86 0 0 0 24 187.31V216a16 16 0 0 0 16 16h32a8 8 0 0 0 8-8v-16h16a8 8 0 0 0 8-8v-16h16a8 8 0 0 0 5.66-2.34l9.56-9.57A79.73 79.73 0 0 0 160 176h.1a80 80 0 0 0 56.47-136.57ZM180 92a16 16 0 1 1 16-16 16 16 0 0 1-16 16Z"/></symbol>
+  <symbol id="i-cube" viewBox="0 0 256 256"><path fill="currentColor" d="m223.68 66.15-88-48.15a15.88 15.88 0 0 0-15.36 0l-88 48.17a16 16 0 0 0-8.32 14v95.64a16 16 0 0 0 8.32 14l88 48.17a15.88 15.88 0 0 0 15.36 0l88-48.17a16 16 0 0 0 8.32-14V80.18a16 16 0 0 0-8.32-14.03ZM128 32l80.34 44L128 120 47.66 76ZM40 90l80 43.78v85.79l-80-43.75Zm96 129.57v-85.75L216 90v85.78Z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 256 256"><path fill="currentColor" d="M228 128a12 12 0 0 1-12 12h-76v76a12 12 0 0 1-24 0v-76H40a12 12 0 0 1 0-24h76V40a12 12 0 0 1 24 0v76h76a12 12 0 0 1 12 12Z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 256 256"><path fill="currentColor" d="M232.49 215.51 185 168a92.12 92.12 0 1 0-17 17l47.53 47.54a12 12 0 0 0 17-17ZM44 112a68 68 0 1 1 68 68 68.07 68.07 0 0 1-68-68Z"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 256 256"><path fill="currentColor" d="M144 128a16 16 0 1 1-16-16 16 16 0 0 1 16 16Zm-84-16a16 16 0 1 0 16 16 16 16 0 0 0-16-16Zm136 0a16 16 0 1 0 16 16 16 16 0 0 0-16-16Z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 256 256"><path fill="currentColor" d="M208.49 191.51a12 12 0 0 1-17 17L128 145l-63.51 63.49a12 12 0 0 1-17-17L111 128 47.51 64.49a12 12 0 0 1 17-17L128 111l63.51-63.52a12 12 0 0 1 17 17L145 128Z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 256 256"><path fill="currentColor" d="M216 28H88a12 12 0 0 0-12 12v36H40a12 12 0 0 0-12 12v128a12 12 0 0 0 12 12h128a12 12 0 0 0 12-12v-36h36a12 12 0 0 0 12-12V40a12 12 0 0 0-12-12Zm-60 176H52V100h104Zm48-48h-24V88a12 12 0 0 0-12-12h-68V52h104Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 256 256"><path fill="currentColor" d="m232.49 80.49-128 128a12 12 0 0 1-17 0l-56-56a12 12 0 1 1 17-17L96 183 215.51 63.51a12 12 0 0 1 17 17Z"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 256 256"><path fill="currentColor" d="m230.14 70.54-44.68-44.69a20 20 0 0 0-28.29 0L33.86 149.17A19.85 19.85 0 0 0 28 163.31V208a20 20 0 0 0 20 20h44.69a19.86 19.86 0 0 0 14.14-5.86L230.14 98.82a20 20 0 0 0 0-28.28ZM91 204H52v-39l84-84 39 39Zm101-101-39-39 18.34-18.34 39 39Z"/></symbol>
+  <symbol id="i-power" viewBox="0 0 256 256"><path fill="currentColor" d="M116 128V40a12 12 0 0 1 24 0v88a12 12 0 0 1-24 0Zm69.42-75.63a12 12 0 0 0-14.31 19.27C193.08 87.92 204 108.06 204 128a76 76 0 0 1-152 0c0-19.94 10.92-40.08 32.89-56.36a12 12 0 1 0-14.31-19.27C40.86 74.46 28 100.32 28 128a100 100 0 0 0 200 0c0-27.68-12.86-53.54-42.58-75.63Z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 256 256"><path fill="currentColor" d="M216 48h-36V36a28 28 0 0 0-28-28h-48a28 28 0 0 0-28 28v12H40a12 12 0 0 0 0 24h4v136a20 20 0 0 0 20 20h128a20 20 0 0 0 20-20V72h4a12 12 0 0 0 0-24ZM100 36a4 4 0 0 1 4-4h48a4 4 0 0 1 4 4v12h-56Zm88 168H68V72h120Zm-72-100v64a12 12 0 0 1-24 0v-64a12 12 0 0 1 24 0Zm48 0v64a12 12 0 0 1-24 0v-64a12 12 0 0 1 24 0Z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 256 256"><path fill="currentColor" d="M228 48v48a12 12 0 0 1-12 12h-48a12 12 0 0 1 0-24h19l-7.8-7.8a75.55 75.55 0 0 0-53.32-22.26h-.43a75.49 75.49 0 0 0-52.94 21.58 12 12 0 1 1-16.77-17.16A99.38 99.38 0 0 1 125.31 30h.53a99.42 99.42 0 0 1 70.24 29.25L204 67V48a12 12 0 0 1 24 0Zm-44.51 139.74a75.49 75.49 0 0 1-52.94 21.58h-.43a75.55 75.55 0 0 1-53.29-22.26L69 179h19a12 12 0 0 0 0-24H40a12 12 0 0 0-12 12v48a12 12 0 0 0 24 0v-19l7.8 7.8A99.42 99.42 0 0 0 130 234.76h.56a99.38 99.38 0 0 0 69.71-28.26 12 12 0 1 0-16.77-17.16Z"/></symbol>
+  <symbol id="i-out" viewBox="0 0 256 256"><path fill="currentColor" d="M116 216a12 12 0 0 1-12 12H48a20 20 0 0 1-20-20V48a20 20 0 0 1 20-20h56a12 12 0 0 1 0 24H52v152h52a12 12 0 0 1 12 12Zm108.49-96.49-40-40a12 12 0 0 0-17 17L187 116h-83a12 12 0 0 0 0 24h83l-19.49 19.51a12 12 0 0 0 17 17l40-40a12 12 0 0 0-.02-17Z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 256 256"><path fill="currentColor" d="M228 104a12 12 0 0 1-24 0V69l-59.51 59.51a12 12 0 0 1-17-17L187 52h-35a12 12 0 0 1 0-24h64a12 12 0 0 1 12 12Zm-44 24a12 12 0 0 0-12 12v64H52V84h64a12 12 0 0 0 0-24H48a20 20 0 0 0-20 20v128a20 20 0 0 0 20 20h128a20 20 0 0 0 20-20v-68a12 12 0 0 0-12-12Z"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 256 256"><path fill="currentColor" d="M128 20a108 108 0 1 0 108 108A108.12 108.12 0 0 0 128 20Zm0 192a84 84 0 1 1 84-84 84.09 84.09 0 0 1-84 84Zm-12-80V80a12 12 0 0 1 24 0v52a12 12 0 0 1-24 0Zm28 40a16 16 0 1 1-16-16 16 16 0 0 1 16 16Z"/></symbol>
+</svg>
+
+<!-- ================= SIGN IN ================= -->
+<div id="signin" class="signin hidden">
+  <div class="box">
+    <div class="eyebrow reveal" style="--i:0">OmniRoute admin</div>
+    <h1 class="serif reveal" style="--i:1">API keys, usage and models.</h1>
+    <p class="reveal" style="--i:2">Sign in with your OmniRoute dashboard password.</p>
+    <form id="loginForm" class="card reveal" style="--i:3" autocomplete="off">
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" class="input" type="password" autocomplete="current-password" required>
+      </div>
+      <div id="loginErr" class="err hidden" role="alert"></div>
+      <button id="loginBtn" class="btn" type="submit">Sign in</button>
+    </form>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app" class="app hidden">
+  <aside class="side">
+    <div class="brand"><div class="brand-mark"><svg class="i" style="width:12px;height:12px"><use href="#i-plus"/></svg></div><div>Admin<small>OmniRoute keys</small></div></div>
+    <nav class="nav" aria-label="Sections">
+      <a href="#/overview" data-view="overview"><svg class="i"><use href="#i-grid"/></svg>Overview</a>
+      <a href="#/keys" data-view="keys"><svg class="i"><use href="#i-key"/></svg>API keys<span class="count" id="navKeys"></span></a>
+      <a href="#/models" data-view="models"><svg class="i"><use href="#i-cube"/></svg>Models<span class="count" id="navModels"></span></a>
+      <a href="#/providers" data-view="providers"><svg class="i"><use href="#i-bolt"/></svg>Providers<span class="count" id="navProviders"></span></a>
+    </nav>
+    <div class="side-foot">
+      <a id="portalLink" href="#" target="_blank" rel="noopener"><svg class="i"><use href="#i-link"/></svg><span class="lbl">User portal</span></a>
+      <a href="http://localhost:20128" target="_blank" rel="noopener"><svg class="i"><use href="#i-link"/></svg><span class="lbl">OmniRoute dashboard</span></a>
+      <button id="logout" type="button"><svg class="i"><use href="#i-out"/></svg><span class="lbl">Sign out</span></button>
+    </div>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+
+<div id="layer"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(() => {
+"use strict";
+
+// =============== utilities ===============
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const icon = (id, cls = "i") => `<svg class="${cls}"><use href="#i-${id}"/></svg>`;
+const fmt = new Intl.NumberFormat();
+function trim2(x) { return (Math.floor(x * 100) / 100).toFixed(2).replace(/\.?0+$/, ""); }
+function short(n) {
+  if (n == null || !isFinite(n)) return "-";
+  const a = Math.abs(n);
+  if (a >= 1e9) return trim2(n / 1e9) + "B";
+  if (a >= 1e6) return trim2(n / 1e6) + "M";
+  if (a >= 1e4) return trim2(n / 1e3) + "k";
+  return fmt.format(n);
+}
+function splitShort(n) { const s = short(n); const m = /^(.*?)([kMB]?)$/.exec(s); return [m[1], m[2]]; }
+function toDate(v) { if (v == null || v === "") return null; const d = new Date(typeof v === "string" && /^\d+$/.test(v) ? Number(v) : v); return isNaN(d) ? null : d; }
+const dFmt = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" });
+const dtFmt = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const tFmt = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+function relative(v) {
+  const d = toDate(v); if (!d) return "never";
+  const diff = d.getTime() - Date.now(), a = Math.abs(diff);
+  const [n, u] = a >= 864e5 ? [Math.round(a / 864e5), "day"] : a >= 36e5 ? [Math.round(a / 36e5), "hour"] : a >= 6e4 ? [Math.round(a / 6e4), "min"] : [0, ""];
+  if (!u) return diff >= 0 ? "in a moment" : "just now";
+  const t = n + " " + u + (n === 1 ? "" : "s");
+  return diff >= 0 ? "in " + t : t + " ago";
+}
+function parseTokens(v) {
+  const m = String(v ?? "").trim().toLowerCase().replace(/[,_\s]/g, "").match(/^(\d+(?:\.\d+)?)([kmb]?)$/);
+  if (!m) return null;
+  const n = Math.round(Number(m[1]) * { "": 1, k: 1e3, m: 1e6, b: 1e9 }[m[2]]);
+  return n > 0 ? n : null;
+}
+const STATUS = {
+  active: ["Active", "green"], out_of_tokens: ["Out of tokens", "red"], disabled: ["Disabled", "gray"],
+  expired: ["Expired", "red"], revoked: ["Revoked", "red"], banned: ["Blocked", "red"],
+};
+const statusPill = (s) => { const [l, t] = STATUS[s] || [s, "yellow"]; return `<span class="pill ${t}">${esc(l)}</span>`; };
+const RESET_LABEL = { once: "One-time", daily: "Daily", weekly: "Weekly", monthly: "Monthly" };
+
+function toast(msg, isErr) {
+  const el = document.createElement("div");
+  el.className = "toast" + (isErr ? " err" : "");
+  el.textContent = msg;
+  $("#toasts").append(el);
+  setTimeout(() => el.remove(), isErr ? 5200 : 2600);
+}
+
+async function api(path, { method = "GET", body } = {}) {
+  const opts = { method, headers: {}, credentials: "same-origin", cache: "no-store" };
+  if (method !== "GET") opts.headers["x-admin-request"] = "1";
+  if (body !== undefined) { opts.headers["content-type"] = "application/json"; opts.body = JSON.stringify(body); }
+  const r = await fetch(path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (r.status === 401 && path !== "/admin/api/login") { showSignin(); throw new Error(data.error || "Sign in first."); }
+  if (!r.ok) throw new Error(data.error || `Request failed (${r.status})`);
+  return data;
+}
+
+async function copy(text, btn) {
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch {
+    const ta = document.createElement("textarea"); ta.value = text; document.body.append(ta); ta.select();
+    try { ok = document.execCommand("copy"); } catch {} ta.remove();
+  }
+  if (btn) { const old = btn.innerHTML; btn.innerHTML = icon(ok ? "check" : "copy") + (ok ? "Copied" : "Copy failed"); setTimeout(() => (btn.innerHTML = old), 1500); }
+  return ok;
+}
+
+// =============== state ===============
+const state = { keys: null, models: null, overview: null, portalUrl: "http://127.0.0.1:20130", keyFilter: "all", keySearch: "", modelSearch: "", modelGroup: "all" };
+
+// =============== auth ===============
+function showSignin() {
+  closeLayer();
+  $("#app").classList.add("hidden");
+  $("#signin").classList.remove("hidden");
+  setTimeout(() => $("#password").focus(), 50);
+}
+function showApp() {
+  $("#signin").classList.add("hidden");
+  $("#app").classList.remove("hidden");
+  $("#portalLink").href = state.portalUrl;
+  route();
+  refreshProviderCount();
+}
+async function refreshProviderCount() {
+  try { applyProviderCount(await api("/admin/api/providers")); } catch {}
+}
+function applyProviderCount(d) {
+  const withCredit = d.providers.filter((x) => x.isActive && x.credit);
+  const has = withCredit.some((x) => x.estimate);
+  const left = withCredit.reduce((s, x) => s + (x.credit.remaining || 0), 0), total = withCredit.reduce((s, x) => s + (x.credit.total || 0), 0);
+  setProviderCount(d.tokensAvailable, has, d.committed > d.tokensAvailable || (total && left / total <= 0.1));
+}
+setInterval(() => { if (!$("#app").classList.contains("hidden") && !document.hidden) refreshProviderCount(); }, 5 * 60 * 1000);
+$("#loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = $("#loginBtn"), err = $("#loginErr");
+  err.classList.add("hidden");
+  btn.disabled = true; btn.textContent = "Signing in";
+  try {
+    await api("/admin/api/login", { method: "POST", body: { password: $("#password").value } });
+    $("#password").value = "";
+    showApp();
+  } catch (ex) {
+    err.textContent = ex.message; err.classList.remove("hidden");
+  } finally { btn.disabled = false; btn.textContent = "Sign in"; }
+});
+$("#logout").addEventListener("click", async () => {
+  try { await api("/admin/api/logout", { method: "POST" }); } catch {}
+  state.keys = state.models = state.overview = null;
+  showSignin();
+});
+
+// =============== router ===============
+function currentView() { const m = /^#\/(\w+)/.exec(location.hash); return m && ["overview", "keys", "models", "providers"].includes(m[1]) ? m[1] : "overview"; }
+function route() {
+  const view = currentView();
+  $$(".nav a").forEach((a) => a.classList.toggle("active", a.dataset.view === view));
+  ({ overview: renderOverview, keys: renderKeys, models: renderModels, providers: renderProviders })[view]();
+}
+window.addEventListener("hashchange", () => { closeLayer(); route(); });
+
+function pageHead(eyebrow, title, sub, actions = "") {
+  return `<div class="page-head reveal"><div><div class="eyebrow">${eyebrow}</div><h1 class="serif">${title}</h1>${sub ? `<p>${sub}</p>` : ""}</div><div class="head-actions">${actions}</div></div>`;
+}
+function loading() { return `<div class="card card-pad"><div class="skel" style="width:40%"></div><div class="skel" style="width:70%;margin-top:12px"></div><div class="skel" style="width:55%;margin-top:12px"></div></div>`; }
+
+async function loadKeys(force) {
+  if (!state.keys || force) state.keys = (await api("/admin/api/keys")).keys;
+  $("#navKeys").textContent = state.keys.length;
+  return state.keys;
+}
+async function loadModels(force) {
+  if (!state.models || force) state.models = await api("/admin/api/models" + (force ? "?refresh=1" : ""));
+  $("#navModels").textContent = state.models.models.length || "";
+  return state.models;
+}
+
+// =============== chart ===============
+function barChart(series, { height = 220 } = {}) {
+  const W = 760, H = height, padL = 44, padB = 22, padT = 10;
+  const max = Math.max(1, ...series.map((d) => d.input + d.output));
+  const nice = (() => { const p = Math.pow(10, Math.floor(Math.log10(max))); const s = [1, 2, 2.5, 5, 10].find((x) => x * p >= max) * p; return s; })();
+  const n = series.length, gap = 3, bw = (W - padL - gap * (n - 1)) / n;
+  const y = (v) => padT + (H - padT - padB) * (1 - v / nice);
+  let out = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Daily token usage">`;
+  for (let i = 0; i <= 4; i++) { const v = (nice / 4) * i, yy = y(v); out += `<line class="grid-line" x1="${padL}" x2="${W}" y1="${yy}" y2="${yy}"/><text x="${padL - 8}" y="${yy + 3}" text-anchor="end">${short(v)}</text>`; }
+  series.forEach((d, i) => {
+    const x = padL + i * (bw + gap);
+    const yIn = y(d.input), yAll = y(d.input + d.output);
+    out += `<rect class="hit" data-i="${i}" x="${x - gap / 2}" y="${padT}" width="${bw + gap}" height="${H - padT - padB}"/>`;
+    if (d.input > 0) out += `<rect class="bar-in" x="${x}" y="${yIn}" width="${bw}" height="${Math.max(0, y(0) - yIn)}" rx="1.5" pointer-events="none"/>`;
+    if (d.output > 0) out += `<rect class="bar-out" x="${x}" y="${Math.min(yAll, yIn - 1)}" width="${bw}" height="${Math.max(1.5, yIn - yAll)}" rx="1.5" pointer-events="none"/>`;
+    if (i % 5 === 0 || i === n - 1) { const dd = new Date(d.day + "T12:00:00"); out += `<text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle">${dd.toLocaleDateString(undefined, { day: "numeric", month: "short" })}</text>`; }
+  });
+  return out + "</svg>";
+}
+function wireChart(wrap, series) {
+  const tip = document.createElement("div"); tip.className = "tooltip hidden"; wrap.append(tip);
+  wrap.querySelectorAll(".hit").forEach((r) => {
+    r.addEventListener("mouseenter", () => {
+      const d = series[Number(r.dataset.i)], box = wrap.getBoundingClientRect(), rb = r.getBoundingClientRect();
+      tip.innerHTML = `<b>${new Date(d.day + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}</b><br>Input ${fmt.format(d.input)}<br>Output ${fmt.format(d.output)}<br>${fmt.format(d.requests)} requests`;
+      const x = rb.left - box.left + rb.width / 2;
+      tip.style.left = Math.min(box.width - 70, Math.max(70, x)) + "px"; tip.style.top = "6px"; tip.classList.remove("hidden");
+    });
+    r.addEventListener("mouseleave", () => tip.classList.add("hidden"));
+  });
+}
+
+function usageMeter(limit, usage, width = 150) {
+  if (!limit) return `<span class="muted">No limit</span>`;
+  const pct = limit.tokenLimit > 0 ? Math.min(100, (limit.used / limit.tokenLimit) * 100) : 0;
+  const shown = limit.used > 0 ? Math.max(pct, 2) : 0;
+  const io = (usage?.input || 0) + (usage?.output || 0);
+  const inShare = io > 0 ? usage.input / io : .5;
+  const over = limit.remaining <= 0;
+  return `<div class="meter" style="width:${width}px">${over ? `<i class="over" style="width:100%"></i>` : `<i class="in" style="width:${shown * inShare}%"></i><i class="out" style="width:${shown * (1 - inShare)}%"></i>`}</div>
+    <div class="meter-cap num">${short(limit.used)} / ${short(limit.tokenLimit)} · ${pct >= 10 || pct === 0 ? pct.toFixed(0) : pct.toFixed(1)}%</div>`;
+}
+
+// =============== provider balance (overview card + sidebar count) ===============
+const creditFmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+function setProviderCount(tokensLeft, short_ok, low) {
+  const el = $("#navProviders");
+  el.textContent = short_ok ? "≈" + short(tokensLeft) : "";
+  el.style.color = low ? "var(--red)" : "";
+  el.title = short_ok ? "Estimated tokens your providers can still supply" : "";
+}
+function providerCard(p) {
+  if (!p) {
+    setProviderCount(0, false);
+    return `<a href="#/providers" class="card card-pad stat reveal span-all" style="--i:5;text-decoration:none;color:inherit"><div class="eyebrow">Provider balance</div><div class="v serif">-</div><div class="split"><span>No provider reports a balance</span></div></a>`;
+  }
+  const short_ok = p.hasEstimate;
+  const low = p.committed > p.tokensLeft || (p.creditsTotal && p.creditsLeft / p.creditsTotal <= 0.1);
+  setProviderCount(p.tokensLeft, short_ok, low);
+  const [tv, tu] = short_ok ? splitShort(p.tokensLeft) : ["-", ""];
+  return `<a href="#/providers" class="card card-pad stat reveal span-all" style="--i:5;text-decoration:none;color:inherit" title="Open provider balances">
+    <div class="eyebrow">${p.name ? esc(p.name) + " " : ""}tokens left</div>
+    <div class="v serif num">${short_ok ? "≈ " : ""}${tv}<small>${tu}</small></div>
+    <div class="split"><span><b>${creditFmt(p.creditsLeft)}</b> of ${creditFmt(p.creditsTotal)} credits</span>${p.nextResetAt ? `<span>resets ${relative(p.nextResetAt)}</span>` : ""}</div>
+    ${low ? `<div class="split" style="margin-top:6px;color:var(--red)"><span>${p.committed > p.tokensLeft ? "Less than your keys can use" : "Credits running low"}</span></div>` : ""}
+  </a>`;
+}
+
+// =============== OVERVIEW ===============
+async function renderOverview() {
+  const main = $("#main");
+  main.innerHTML = pageHead("Overview", "Usage at a glance", "Token use across every API key.", `<button class="btn ghost" id="ovRefresh">${icon("refresh")}Refresh</button><button class="btn" id="ovNew">${icon("plus")}New key</button>`) + loading();
+  $("#ovNew").onclick = () => openKeyEditor();
+  $("#ovRefresh").onclick = () => { state.overview = null; renderOverview(); };
+  let o;
+  try { o = state.overview = await api("/admin/api/overview"); } catch (e) { main.querySelector(".card").outerHTML = `<div class="callout red">${icon("warn")}${esc(e.message)}</div>`; return; }
+  if (currentView() !== "overview") return;
+  const stat = (label, t, i) => {
+    const [v, u] = splitShort(t.input + t.output);
+    return `<div class="card card-pad stat reveal" style="--i:${i}"><div class="eyebrow">${label}</div><div class="v serif num">${v}<small>${u}</small></div>
+      <div class="split"><span><span class="dot in"></span>In <b>${short(t.input)}</b></span><span><span class="dot out"></span>Out <b>${short(t.output)}</b></span><span>${fmt.format(t.requests)} req</span></div></div>`;
+  };
+  const c = o.counts;
+  const keysCard = `<div class="card card-pad stat reveal" style="--i:4"><div class="eyebrow">API keys</div><div class="v serif num">${c.total || 0}</div>
+    <div class="split"><span><b>${c.active || 0}</b> active</span><span><b>${c.out_of_tokens || 0}</b> out</span><span><b>${(c.disabled || 0) + (c.expired || 0)}</b> off</span></div></div>`;
+  const maxTop = Math.max(1, ...o.topKeys.map((k) => k.usage.input + k.usage.output));
+  const maxModel = Math.max(1, ...o.topModels.map((m) => m.input + m.output));
+  const attention = o.attention.length ? o.attention.map((k) => {
+    let why = "";
+    if (k.status === "out_of_tokens") why = "Out of tokens";
+    else if (k.status === "expired") why = "Expired";
+    else if (k.limit && k.limit.remaining / k.limit.tokenLimit <= .1) why = `${short(k.limit.remaining)} tokens left`;
+    else if (k.expiresAt) why = "Expires " + relative(k.expiresAt);
+    return `<div class="list-row"><div class="grow"><a href="#/keys" data-open="${k.id}" class="name">${esc(k.name)}</a><div class="ksub">${esc(why)}</div></div>${statusPill(k.status)}</div>`;
+  }).join("") : `<div class="muted" style="padding:8px 0">Nothing needs attention.</div>`;
+
+  main.innerHTML = pageHead("Overview", "Usage at a glance", "Token use across every API key.", `<button class="btn ghost" id="ovRefresh">${icon("refresh")}Refresh</button><button class="btn" id="ovNew">${icon("plus")}New key</button>`) + `
+  <div class="grid g-5">${stat("Today", o.totals.today, 0)}${stat("Last 7 days", o.totals.last7, 1)}${stat("Last 30 days", o.totals.last30, 2)}${keysCard}${providerCard(o.providers)}</div>
+  <div class="grid g-3" style="margin-top:12px">
+    <div class="card card-pad reveal" style="--i:5"><div class="card-title"><h3>Daily tokens, last 30 days</h3><div class="legend"><span><span class="dot in"></span>Input</span><span><span class="dot out"></span>Output</span></div></div><div class="chart-wrap" id="ovChart">${barChart(o.daily)}</div></div>
+    <div class="card card-pad reveal" style="--i:6"><div class="card-title"><h3>Needs attention</h3></div>${attention}</div>
+  </div>
+  <div class="grid g-2" style="margin-top:12px">
+    <div class="card card-pad reveal" style="--i:7"><div class="card-title"><h3>Top keys, 30 days</h3><a class="btn sm ghost" href="#/keys">All keys</a></div>
+      ${o.topKeys.length ? o.topKeys.map((k) => `<div class="list-row"><div class="grow"><a href="#/keys" data-open="${k.id}" class="name">${esc(k.name)}</a><div class="hbar"><i style="width:${((k.usage.input + k.usage.output) / maxTop) * 100}%"></i></div></div><div class="r num mono" style="font-size:12.5px">${short(k.usage.input + k.usage.output)}</div></div>`).join("") : `<div class="muted">No key has used tokens in the last 30 days.</div>`}
+    </div>
+    <div class="card card-pad reveal" style="--i:8"><div class="card-title"><h3>Top models, 30 days</h3><a class="btn sm ghost" href="#/models">All models</a></div>
+      ${o.topModels.length ? o.topModels.map((m) => `<div class="list-row"><div class="grow"><div class="name mono" style="font-size:12.5px">${esc((m.provider ? m.provider + "/" : "") + m.model)}</div><div class="hbar"><i style="width:${((m.input + m.output) / maxModel) * 100}%"></i></div></div><div class="r num mono" style="font-size:12.5px">${short(m.input + m.output)}</div></div>`).join("") : `<div class="muted">No usage yet.</div>`}
+    </div>
+  </div>`;
+  $("#ovNew").onclick = () => openKeyEditor();
+  $("#ovRefresh").onclick = () => { state.overview = null; renderOverview(); };
+  wireChart($("#ovChart"), o.daily);
+  $$("[data-open]", main).forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); location.hash = "#/keys"; setTimeout(() => openKeyDrawer(a.dataset.open), 0); }));
+  loadKeys().catch(() => {});
+}
+
+// =============== KEYS ===============
+async function renderKeys(force) {
+  const main = $("#main");
+  const head = pageHead("API keys", "Keys and limits", "Create keys, set token limits, expiry and allowed models.", `<button class="btn ghost" id="kRefresh">${icon("refresh")}Refresh</button><button class="btn" id="kNew">${icon("plus")}New key</button>`);
+  if (!state.keys || force) main.innerHTML = head + loading();
+  try { await loadKeys(force); } catch (e) { main.innerHTML = head + `<div class="callout red">${icon("warn")}${esc(e.message)}</div>`; return; }
+  if (currentView() !== "keys") return;
+  const counts = { all: state.keys.length };
+  state.keys.forEach((k) => { counts[k.status] = (counts[k.status] || 0) + 1; });
+  const filters = [["all", "All"], ["active", "Active"], ["out_of_tokens", "Out of tokens"], ["disabled", "Disabled"], ["expired", "Expired"]];
+  main.innerHTML = head + `
+    <div class="toolbar reveal" style="--i:1">
+      <label class="search">${icon("search")}<input id="kSearch" placeholder="Search keys" value="${esc(state.keySearch)}"></label>
+      <div class="chips">${filters.filter(([id]) => id === "all" || counts[id]).map(([id, l]) => `<button class="chip ${state.keyFilter === id ? "on" : ""}" data-f="${id}">${l}<span class="n">${counts[id] || 0}</span></button>`).join("")}</div>
+    </div>
+    <div class="card reveal" style="--i:2"><div class="table-wrap"><table>
+      <thead><tr><th>Key</th><th>Status</th><th>Usage</th><th class="r">Left</th><th>Resets</th><th>Expires</th><th>Models</th><th>Last used</th><th></th></tr></thead>
+      <tbody id="kBody"></tbody></table></div></div>`;
+  $("#kNew").onclick = () => openKeyEditor();
+  $("#kRefresh").onclick = () => renderKeys(true);
+  $("#kSearch").addEventListener("input", (e) => { state.keySearch = e.target.value; fillKeyRows(); });
+  $$(".chip[data-f]").forEach((c) => c.addEventListener("click", () => { state.keyFilter = c.dataset.f; renderKeys(); }));
+  fillKeyRows();
+}
+
+function fillKeyRows() {
+  const q = state.keySearch.trim().toLowerCase();
+  const rows = state.keys.filter((k) => (state.keyFilter === "all" || k.status === state.keyFilter) && (!q || k.name.toLowerCase().includes(q) || (k.prefix || "").toLowerCase().includes(q) || (k.models || []).some((m) => m.toLowerCase().includes(q))));
+  const body = $("#kBody");
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="9"><div class="empty"><span class="serif">${state.keys.length ? "No matching keys" : "No API keys yet"}</span>${state.keys.length ? "Try another search or filter." : `Create one to share access with a token limit.<div style="margin-top:14px"><button class="btn" id="emptyNew">${icon("plus")}New key</button></div>`}</div></td></tr>`;
+    const b = $("#emptyNew"); if (b) b.onclick = () => openKeyEditor();
+    return;
+  }
+  body.innerHTML = rows.map((k) => {
+    const L = k.limit;
+    const resets = !L ? `<span class="muted">-</span>` : L.reset === "once" ? `<span class="tag">One-time</span>` : `<span class="tag">${RESET_LABEL[L.reset]}</span><div class="ksub">${L.nextResetAt ? relative(L.nextResetAt) : ""}</div>`;
+    const exp = k.expiresAt ? `${dFmt.format(toDate(k.expiresAt))}<div class="ksub">${relative(k.expiresAt)}</div>` : `<span class="muted">Never</span>`;
+    const models = k.models ? `<span class="tag" title="${esc(k.models.join("\n"))}">${k.models.length} model${k.models.length === 1 ? "" : "s"}</span>` : `<span class="tag blue">All</span>`;
+    return `<tr class="click" data-id="${k.id}">
+      <td><div class="kname">${esc(k.name)}</div><div class="ksub">${esc(k.prefix || "")}…</div></td>
+      <td>${statusPill(k.status)}</td>
+      <td>${usageMeter(L, k.limit?.reset === "once" ? k.usageAll : k.usage30d)}</td>
+      <td class="r num mono">${L ? short(L.remaining) : "-"}</td>
+      <td>${resets}</td>
+      <td>${exp}</td>
+      <td>${models}</td>
+      <td class="muted">${k.lastUsedAt ? relative(k.lastUsedAt) : "Never"}</td>
+      <td class="r"><button class="icon-btn" data-menu="${k.id}" aria-label="Actions for ${esc(k.name)}">${icon("dots")}</button></td></tr>`;
+  }).join("");
+  $$("tr.click", body).forEach((tr) => tr.addEventListener("click", (e) => { if (e.target.closest("[data-menu]")) return; openKeyDrawer(tr.dataset.id); }));
+  $$("[data-menu]", body).forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); openKeyMenu(b, state.keys.find((k) => k.id === b.dataset.menu)); }));
+}
+
+function openKeyMenu(anchor, key) {
+  closeMenu();
+  const menu = document.createElement("div");
+  menu.className = "menu"; menu.id = "menu";
+  menu.innerHTML = `<button data-a="view">${icon("key")}View usage</button><button data-a="edit">${icon("edit")}Edit limits &amp; models</button>
+    <button data-a="toggle">${icon("power")}${key.isActive ? "Disable" : "Enable"}</button><hr><button data-a="delete" class="danger">${icon("trash")}Delete</button>`;
+  document.body.append(menu);
+  const r = anchor.getBoundingClientRect();
+  menu.style.top = Math.min(window.innerHeight - menu.offsetHeight - 8, r.bottom + 4) + "px";
+  menu.style.left = Math.max(8, r.right - menu.offsetWidth) + "px";
+  menu.addEventListener("click", (e) => {
+    const a = e.target.closest("button")?.dataset.a; if (!a) return;
+    closeMenu();
+    if (a === "view") openKeyDrawer(key.id);
+    if (a === "edit") openKeyEditor(key.id);
+    if (a === "toggle") toggleKey(key);
+    if (a === "delete") confirmDelete(key);
+  });
+  setTimeout(() => document.addEventListener("click", closeMenu, { once: true }), 0);
+}
+function closeMenu() { $("#menu")?.remove(); }
+
+async function toggleKey(key, after) {
+  try {
+    await api(`/admin/api/keys/${key.id}/${key.isActive ? "disable" : "enable"}`, { method: "POST" });
+    toast(`"${key.name}" ${key.isActive ? "disabled" : "enabled"}.`);
+    await refreshAfterChange(); after?.();
+  } catch (e) { toast(e.message, true); }
+}
+
+function confirmDelete(key, after) {
+  openModal(`<div class="modal narrow" role="dialog" aria-modal="true">
+    <div class="modal-head"><h2 class="serif">Delete this key?</h2><p>"${esc(key.name)}" stops working right away. This cannot be undone.</p></div>
+    <div class="modal-body"><div class="field"><label for="delName">Type the key name to confirm</label><input id="delName" class="input" autocomplete="off"></div></div>
+    <div class="modal-foot"><button class="btn ghost" data-close>Cancel</button><button class="btn danger" id="delGo" disabled>${icon("trash")}Delete key</button></div></div>`);
+  const input = $("#delName"), go = $("#delGo");
+  input.focus();
+  input.addEventListener("input", () => (go.disabled = input.value.trim() !== key.name));
+  go.onclick = async () => {
+    go.disabled = true;
+    try { await api(`/admin/api/keys/${key.id}`, { method: "DELETE" }); closeLayer(); toast(`Deleted "${key.name}".`); await refreshAfterChange(); after?.(); }
+    catch (e) { toast(e.message, true); go.disabled = false; }
+  };
+}
+
+async function refreshAfterChange() {
+  state.overview = null;
+  await loadKeys(true);
+  if (state.models) loadModels(true).catch(() => {});
+  if (currentView() === "keys") renderKeys();
+  else if (currentView() === "overview") renderOverview();
+  else if (currentView() === "models") renderModels();
+}
+
+// ---------- key drawer ----------
+async function openKeyDrawer(id) {
+  closeLayer();
+  const layer = $("#layer");
+  layer.innerHTML = `<div class="scrim" data-close></div><aside class="drawer" role="dialog" aria-modal="true" aria-label="Key details"><div class="drawer-head"><div class="skel" style="width:160px"></div><button class="icon-btn" data-close aria-label="Close">${icon("x")}</button></div><div class="drawer-body">${loading()}</div></aside>`;
+  bindClose(layer);
+  let d;
+  try { d = await api(`/admin/api/keys/${id}`); } catch (e) { $(".drawer-body", layer).innerHTML = `<div class="callout red">${icon("warn")}${esc(e.message)}</div>`; return; }
+  const L = d.limit;
+  const isOnce = L?.reset === "once";
+  const scopeUsage = isOnce ? d.usageAll : d.usage30d;
+  const pct = L && L.tokenLimit > 0 ? Math.min(100, (L.used / L.tokenLimit) * 100) : 0;
+  const io = scopeUsage.input + scopeUsage.output, inShare = io > 0 ? scopeUsage.input / io : .5;
+  const shown = L && L.used > 0 ? Math.max(pct, 1) : 0;
+  const [lv, lu] = L ? splitShort(L.remaining) : ["", ""];
+  const maxModel = Math.max(1, ...d.byModel.map((m) => m.input + m.output));
+  const drawer = $(".drawer", layer);
+  drawer.innerHTML = `
+    <div class="drawer-head">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0"><strong style="font-size:16px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.name)}</strong>${statusPill(d.status)}</div>
+      <div style="display:flex;gap:6px"><button class="btn sm ghost" id="dEdit">${icon("edit")}Edit</button><button class="btn sm ghost" id="dToggle">${icon("power")}${d.isActive ? "Disable" : "Enable"}</button><button class="icon-btn" id="dDelete" aria-label="Delete">${icon("trash")}</button><button class="icon-btn" data-close aria-label="Close">${icon("x")}</button></div>
+    </div>
+    <div class="drawer-body">
+      ${d.status === "out_of_tokens" ? `<div class="callout red">${icon("warn")}<div>This key is out of tokens. ${isOnce ? "Raise its total token limit to turn it back on." : "It works again after the next reset, or raise the limit now."}</div></div>` : ""}
+      <div class="card card-pad">
+        ${L ? `<div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div><div class="eyebrow">Tokens left</div><div class="balance-big serif num" style="margin-top:12px">${lv}<small>${lu}</small></div><div class="muted" style="margin-top:6px">of <b style="color:var(--ink)">${short(L.tokenLimit)}</b> · ${isOnce ? "One-time balance" : RESET_LABEL[L.reset] + " limit"}</div></div>
+          <div style="text-align:right"><div class="eyebrow">${isOnce ? "Resets" : "Next reset"}</div><div class="mono" style="margin-top:10px;color:var(--ink)">${isOnce ? "Never" : L.nextResetAt ? dtFmt.format(toDate(L.nextResetAt)) : "-"}</div><div class="muted">${isOnce ? "Top up by raising the limit" : L.nextResetAt ? relative(L.nextResetAt) : ""}</div></div>
+        </div>
+        <div class="bigbar">${L.remaining <= 0 ? `<i class="over" style="width:100%"></i>` : `<i class="in" style="width:${shown * inShare}%"></i><i class="out" style="width:${shown * (1 - inShare)}%"></i>`}</div>
+        <div class="legend" style="justify-content:space-between"><span><span class="dot in"></span>Input ${short(scopeUsage.input)}</span><span><span class="dot out"></span>Output ${short(scopeUsage.output)}</span><span>${fmt.format(scopeUsage.requests)} requests ${isOnce ? "in total" : "in 30 days"}</span><span class="mono">${pct.toFixed(pct >= 10 || pct === 0 ? 0 : 1)}% used</span></div>`
+        : `<div class="eyebrow">Token limit</div><div class="balance-big serif" style="margin-top:12px">No limit</div><div class="muted" style="margin-top:6px">This key can use unlimited tokens. <a href="#" id="dAddLimit">Add a limit</a></div>`}
+      </div>
+      <div class="card card-pad"><div class="card-title"><h3>Daily tokens, last 30 days</h3><div class="legend"><span><span class="dot in"></span>Input</span><span><span class="dot out"></span>Output</span></div></div><div class="chart-wrap" id="dChart">${barChart(d.daily, { height: 180 })}</div></div>
+      <div class="grid g-2">
+        <div class="card card-pad"><div class="card-title"><h3>Details</h3></div><dl class="kv">
+          <dt>Key</dt><dd class="mono">${esc(d.prefix)}…</dd>
+          <dt>Created</dt><dd>${d.createdAt ? dtFmt.format(toDate(d.createdAt)) : "-"}</dd>
+          <dt>Expires</dt><dd>${d.expiresAt ? `${dtFmt.format(toDate(d.expiresAt))}<div class="ksub">${relative(d.expiresAt)}</div>` : "Never"}</dd>
+          <dt>Last used</dt><dd>${d.lastUsedAt ? relative(d.lastUsedAt) : "Never"}</dd>
+          <dt>All time</dt><dd class="num">${short(d.usageAll.input)} in · ${short(d.usageAll.output)} out · ${fmt.format(d.usageAll.requests)} req</dd>
+        </dl></div>
+        <div class="card card-pad"><div class="card-title"><h3>Allowed models</h3><button class="btn sm ghost" id="dModels">${icon("edit")}Change</button></div>
+          ${d.models ? `<div class="selected-tags" style="margin:0">${d.models.map((m) => `<span class="tag">${esc(m)}</span>`).join("")}</div>` : `<span class="tag blue">All models</span><div class="muted" style="margin-top:8px;font-size:13px">This key can use every model OmniRoute offers.</div>`}
+        </div>
+      </div>
+      <div class="card card-pad"><div class="card-title"><h3>Usage by model, all time</h3></div>
+        ${d.byModel.length ? d.byModel.map((m) => `<div class="list-row"><div class="grow"><div class="name mono" style="font-size:12.5px">${esc((m.provider ? m.provider + "/" : "") + m.model)}</div><div class="hbar"><i style="width:${((m.input + m.output) / maxModel) * 100}%"></i></div></div><div class="ksub" style="text-align:right">${short(m.input)} in · ${short(m.output)} out<br>${fmt.format(m.requests)} req</div></div>`).join("") : `<div class="muted">No requests yet.</div>`}
+      </div>
+      <div class="card"><div class="card-pad" style="padding-bottom:0"><div class="card-title"><h3>Recent requests</h3></div></div>
+        ${d.recent.length ? `<div class="table-wrap"><table><thead><tr><th>Time</th><th>Model</th><th class="r">In</th><th class="r">Out</th><th>Status</th><th class="r">Time taken</th></tr></thead><tbody>
+          ${d.recent.map((r) => `<tr><td class="muted" style="white-space:nowrap">${tFmt.format(toDate(r.timestamp))}</td><td class="mono" style="font-size:12px">${esc(r.requestedModel || r.model || "-")}</td><td class="r num mono">${fmt.format(r.input)}</td><td class="r num mono">${fmt.format(r.output)}</td><td>${r.status >= 200 && r.status < 300 ? `<span class="pill green">${r.status}</span>` : `<span class="pill ${r.status === 429 ? "yellow" : "red"}">${r.status || "-"}</span>`}</td><td class="r muted num">${r.duration ? (r.duration / 1000).toFixed(1) + "s" : "-"}</td></tr>`).join("")}
+        </tbody></table></div>` : `<div class="card-pad muted">No requests yet.</div>`}
+      </div>
+    </div>`;
+  bindClose(layer);
+  wireChart($("#dChart"), d.daily);
+  const keyRef = { id: d.id, name: d.name, isActive: d.isActive };
+  $("#dEdit").onclick = () => openKeyEditor(d.id);
+  $("#dModels").onclick = () => openKeyEditor(d.id, { focus: "models" });
+  const addLimit = $("#dAddLimit"); if (addLimit) addLimit.onclick = (e) => { e.preventDefault(); openKeyEditor(d.id, { focus: "tokens" }); };
+  $("#dToggle").onclick = () => toggleKey(keyRef, () => openKeyDrawer(d.id));
+  $("#dDelete").onclick = () => confirmDelete(keyRef);
+}
+
+// ---------- key editor ----------
+async function openKeyEditor(id, { focus } = {}) {
+  const editing = !!id;
+  let d = null;
+  if (editing) { try { d = await api(`/admin/api/keys/${id}`); } catch (e) { toast(e.message, true); return; } }
+  let catalog = [];
+  try { catalog = (await loadModels()).models.map((m) => m.id); } catch {}
+
+  const f = {
+    name: d?.name || "",
+    tokens: d?.limit ? String(d.limit.tokenLimit) : "",
+    reset: d?.limit?.reset || "once",
+    expMode: d?.expiresAt ? "date" : "never",
+    expDays: "30",
+    expDate: d?.expiresAt ? (() => { const x = toDate(d.expiresAt); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; })() : "",
+    modelsMode: d && !d.models ? "all" : d?.models ? "some" : "some",
+    models: new Set(d?.models || []),
+  };
+  if (!editing && !catalog.length) f.modelsMode = "all";
+  const usedNow = d?.limit?.used ?? 0;
+
+  openModal(`<div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head"><div class="eyebrow">${editing ? "Edit key" : "New key"}</div><h2 class="serif">${editing ? esc(d.name) : "Create an API key"}</h2><p>${editing ? "Changes apply right away." : "The key is shown once after you create it."}</p></div>
+    <form class="modal-body" id="kf" autocomplete="off">
+      <div class="field"><label for="fName">Name</label><input id="fName" class="input" maxlength="200" placeholder="e.g. Somchai, laptop" value="${esc(f.name)}" required></div>
+
+      <div class="field"><span class="label">Token limit <span class="muted" style="font-weight:400">· input + output</span></span>
+        <div class="input-row"><input id="fTokens" class="input mono" style="max-width:220px" placeholder="${editing && !d.limit ? "No limit" : "50M"}" value="${esc(f.tokens ? (parseTokens(short(Number(f.tokens)).replace(/,/g, "")) === Number(f.tokens) ? short(Number(f.tokens)).replace(/,/g, "") : f.tokens) : "")}"><span id="fTokensExact" class="muted num mono" style="font-size:12.5px"></span></div>
+        <div class="presets">${["1M", "5M", "10M", "50M", "100M", "500M", "1B"].map((p) => `<button type="button" data-p="${p}">${p}</button>`).join("")}</div>
+        <div class="hint" id="fTokensHint"></div>
+      </div>
+
+      <div class="field"><span class="label">When tokens reset</span>
+        <div class="seg" id="fReset">${[["once", "Never (one-time)"], ["daily", "Daily"], ["weekly", "Weekly"], ["monthly", "Monthly"]].map(([v, l]) => `<button type="button" data-v="${v}">${l}</button>`).join("")}</div>
+        <div class="hint" id="fResetHint"></div>
+      </div>
+
+      <div class="field"><span class="label">Key expires</span>
+        <div class="input-row" style="flex-wrap:wrap">
+          <div class="seg" id="fExp">${[["never", "Never"], ["days", "After days"], ["date", "On date"]].map(([v, l]) => `<button type="button" data-v="${v}">${l}</button>`).join("")}</div>
+          <input id="fExpDays" class="input mono" type="number" min="1" max="3650" style="width:110px" value="${esc(f.expDays)}">
+          <input id="fExpDate" class="input mono" type="date" style="width:170px" value="${esc(f.expDate)}">
+        </div>
+        <div class="hint" id="fExpHint"></div>
+      </div>
+
+      <div class="field" id="fModelsField"><span class="label">Allowed models</span>
+        <div class="seg" id="fModelsMode"><button type="button" data-v="all">All models</button><button type="button" data-v="some">Only selected</button></div>
+        <div id="fPicker" style="margin-top:10px"></div>
+      </div>
+    </form>
+    <div class="modal-foot"><span class="left" id="fErr"></span><button class="btn ghost" data-close type="button">Cancel</button><button class="btn" id="fSave" type="button">${editing ? "Save changes" : `${icon("plus")}Create key`}</button></div>
+  </div>`);
+
+  const seg = (el, val) => $$("button", el).forEach((b) => b.classList.toggle("on", b.dataset.v === val));
+  const upd = () => {
+    const n = parseTokens($("#fTokens").value);
+    $("#fTokensExact").textContent = n ? fmt.format(n) + " tokens" : "";
+    let hint = "";
+    if (editing && f.reset === "once") hint = `Used so far: <b>${short(usedNow)}</b>. This is the total for the life of the key${n && n > usedNow ? `, so ${short(n - usedNow)} would be left.` : n ? ". Set it above what is used to keep the key working." : "."}`;
+    else if (editing && d?.limit) hint = `Used this period: <b>${short(usedNow)}</b>.`;
+    else if (editing && !d?.limit) hint = "This key has no token limit. Leave it empty to keep it unlimited.";
+    $("#fTokensHint").innerHTML = hint;
+    seg($("#fReset"), f.reset);
+    $("#fResetHint").textContent = f.reset === "once" ? "A fixed balance. When it is used up, the key stops working until you raise the limit." : f.reset === "daily" ? "The count starts over every day at 07:00 your time (00:00 UTC)." : f.reset === "weekly" ? "The count starts over every Monday at 07:00 your time (00:00 UTC)." : "The count starts over on the 1st of each month at 07:00 your time (00:00 UTC).";
+    seg($("#fExp"), f.expMode);
+    $("#fExpDays").classList.toggle("hidden", f.expMode !== "days");
+    $("#fExpDate").classList.toggle("hidden", f.expMode !== "date");
+    const exp = expiryValue();
+    $("#fExpHint").textContent = f.expMode === "never" ? "The key keeps working until you disable or delete it." : exp ? "Stops working " + dtFmt.format(new Date(exp)) + "." : "";
+    seg($("#fModelsMode"), f.modelsMode);
+    renderPicker();
+  };
+  const expiryValue = () => {
+    if (f.expMode === "never") return null;
+    if (f.expMode === "days") { const n = Number($("#fExpDays").value); return n > 0 ? new Date(Date.now() + n * 864e5).toISOString() : undefined; }
+    const v = $("#fExpDate").value; if (!v) return undefined;
+    const [y, m, dd] = v.split("-").map(Number); return new Date(y, m - 1, dd, 23, 59, 59).toISOString();
+  };
+
+  let pickerSearch = "";
+  function renderPicker() {
+    const box = $("#fPicker");
+    if (f.modelsMode === "all") { box.innerHTML = `<div class="hint" style="margin:0">The key can use every model, including ones added later.</div>`; return; }
+    const extra = [...f.models].filter((m) => !catalog.includes(m));
+    const all = [...catalog, ...extra];
+    const q = pickerSearch.toLowerCase();
+    const visible = all.filter((m) => !q || m.toLowerCase().includes(q));
+    const groups = {};
+    visible.forEach((m) => { const g = m.includes("/") ? m.split("/")[0] : "other"; (groups[g] ||= []).push(m); });
+    box.innerHTML = `<div class="model-picker">
+      <div class="mp-head">${icon("search")}<input id="mpSearch" placeholder="Search models, or type an exact ID and press Enter" value="${esc(pickerSearch)}"></div>
+      <div class="mp-list">${Object.keys(groups).length ? Object.entries(groups).map(([g, ms]) => `<div class="mp-group"><span>${esc(g)} · ${ms.length}</span><button type="button" data-g="${esc(g)}">${ms.every((m) => f.models.has(m)) ? "Clear" : "Select all"}</button></div>${ms.map((m) => `<label class="mp-item"><input type="checkbox" data-m="${esc(m)}" ${f.models.has(m) ? "checked" : ""}>${esc(m)}</label>`).join("")}`).join("") : `<div class="mp-item muted">${catalog.length ? "No match. Press Enter to add this exact model ID." : "Could not load the model list. Type a model ID and press Enter."}</div>`}</div>
+      <div class="mp-foot"><span><b style="color:var(--ink)">${f.models.size}</b> selected</span>${f.models.size ? `<button type="button" id="mpClear">Clear all</button>` : ""}</div></div>`;
+    const s = $("#mpSearch");
+    s.addEventListener("input", () => { pickerSearch = s.value; const pos = s.selectionStart; renderPicker(); const n = $("#mpSearch"); n.focus(); n.setSelectionRange(pos, pos); });
+    s.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); const v = s.value.trim(); if (v) { f.models.add(v); pickerSearch = ""; renderPicker(); $("#mpSearch").focus(); } } });
+    $$("[data-m]", box).forEach((c) => c.addEventListener("change", () => { c.checked ? f.models.add(c.dataset.m) : f.models.delete(c.dataset.m); $(".mp-foot b", box).textContent = f.models.size; refreshGroupButtons(); }));
+    $$("[data-g]", box).forEach((b) => b.addEventListener("click", () => { const ms = groups[b.dataset.g]; const allOn = ms.every((m) => f.models.has(m)); ms.forEach((m) => (allOn ? f.models.delete(m) : f.models.add(m))); renderPicker(); }));
+    const clr = $("#mpClear"); if (clr) clr.onclick = () => { f.models.clear(); renderPicker(); };
+    function refreshGroupButtons() { $$("[data-g]", box).forEach((b) => { b.textContent = groups[b.dataset.g].every((m) => f.models.has(m)) ? "Clear" : "Select all"; }); }
+  }
+
+  $$("#fReset button").forEach((b) => b.addEventListener("click", () => { f.reset = b.dataset.v; upd(); }));
+  $$("#fExp button").forEach((b) => b.addEventListener("click", () => { f.expMode = b.dataset.v; upd(); }));
+  $$("#fModelsMode button").forEach((b) => b.addEventListener("click", () => { f.modelsMode = b.dataset.v; upd(); }));
+  $$(".presets button").forEach((b) => b.addEventListener("click", () => { $("#fTokens").value = b.dataset.p; upd(); }));
+  ["#fTokens", "#fExpDays", "#fExpDate"].forEach((s) => $(s).addEventListener("input", upd));
+  $("#kf").addEventListener("submit", (e) => { e.preventDefault(); save(); });
+  $("#fSave").onclick = save;
+  upd();
+  setTimeout(() => (focus === "models" ? $("#fModelsField") : focus === "tokens" ? $("#fTokens") : $("#fName"))?.scrollIntoView?.({ block: "center" }) ?? 0, 50);
+  setTimeout(() => (focus === "tokens" ? $("#fTokens") : focus ? null : $("#fName"))?.focus(), 60);
+
+  async function save() {
+    const err = $("#fErr"); err.textContent = "";
+    const name = $("#fName").value.trim();
+    const tokens = parseTokens($("#fTokens").value);
+    const exp = expiryValue();
+    const keepUnlimited = editing && !d.limit && !$("#fTokens").value.trim();
+    if (!name) return (err.textContent = "Give the key a name.");
+    if (!tokens && !keepUnlimited) return (err.textContent = "Enter a token limit, e.g. 50M.");
+    if (exp === undefined) return (err.textContent = "Pick when the key expires.");
+    if (exp && new Date(exp).getTime() <= Date.now()) return (err.textContent = "The expiry date must be in the future.");
+    if (f.modelsMode === "some" && !f.models.size) return (err.textContent = "Pick at least one model, or allow all models.");
+    const models = f.modelsMode === "all" ? null : [...f.models];
+    const btn = $("#fSave"); btn.disabled = true;
+    try {
+      if (!editing) {
+        const created = await api("/admin/api/keys", { method: "POST", body: { name, tokenLimit: tokens, reset: f.reset, expiresAt: exp, models } });
+        closeLayer();
+        showCreated(created);
+        await refreshAfterChange();
+      } else {
+        const body = {};
+        if (name !== d.name) body.name = name;
+        if (!keepUnlimited) {
+          if (!d.limit || tokens !== d.limit.tokenLimit) body.tokenLimit = tokens;
+          if (!d.limit || f.reset !== d.limit.reset) body.reset = f.reset;
+        }
+        const origExp = d.expiresAt ? toDate(d.expiresAt).toISOString() : null;
+        const expChanged = f.expMode === "never" ? origExp !== null : f.expMode === "days" || (exp && (!origExp || new Date(exp).toDateString() !== new Date(origExp).toDateString()));
+        if (expChanged) body.expiresAt = exp;
+        const origModels = d.models ? [...d.models].sort().join("\n") : null;
+        const newModels = models ? [...models].sort().join("\n") : null;
+        if (origModels !== newModels) body.models = models;
+        if (!Object.keys(body).length) { closeLayer(); return toast("Nothing changed."); }
+        const r = await api(`/admin/api/keys/${d.id}`, { method: "PATCH", body });
+        closeLayer();
+        toast(r.reenabled ? `Saved. "${name}" had run out and is turned back on.` : "Saved.");
+        await refreshAfterChange();
+        openKeyDrawer(d.id);
+      }
+    } catch (e) { err.textContent = e.message; btn.disabled = false; }
+  }
+}
+
+function showCreated(c) {
+  const base = state.portalUrl + "/v1";
+  openModal(`<div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head"><div class="eyebrow">Key created</div><h2 class="serif">${esc(c.name)}</h2><p>${short(c.tokenLimit)} tokens · ${c.reset === "once" ? "one-time, never resets" : RESET_LABEL[c.reset].toLowerCase() + " reset"} · ${c.expiresAt ? "expires " + dFmt.format(new Date(c.expiresAt)) : "no expiry"}</p></div>
+    <div class="modal-body">
+      <div class="callout yellow">${icon("warn")}<div><b>Copy this key now.</b> It will not be shown again.</div></div>
+      <div class="field"><span class="label">API key</span><div class="secret-box"><code id="cSecret">${esc(c.secret)}</code><button class="btn sm ghost" id="cCopy">${icon("copy")}Copy</button></div></div>
+      <div class="field"><span class="label">Send this to the user</span>
+        <div class="secret-box" style="align-items:flex-start"><code id="cMsg" style="white-space:pre-wrap;font-size:12.5px">API base URL: ${esc(base)}\nAPI key: ${esc(c.secret)}\nToken limit: ${esc(short(c.tokenLimit))} (${c.reset === "once" ? "one-time" : RESET_LABEL[c.reset].toLowerCase()})\nCheck your balance: ${esc(state.portalUrl)}</code><button class="btn sm ghost" id="cCopyMsg">${icon("copy")}Copy</button></div>
+        <div class="hint">These are the public addresses users connect to.</div></div>
+    </div>
+    <div class="modal-foot"><button class="btn" data-close>Done</button></div></div>`);
+  $("#cCopy").onclick = (e) => copy(c.secret, e.currentTarget);
+  $("#cCopyMsg").onclick = (e) => copy($("#cMsg").textContent, e.currentTarget);
+}
+
+// =============== MODELS ===============
+async function renderModels(force) {
+  const main = $("#main");
+  const head = pageHead("Models", "Models and access", "Every model OmniRoute offers, how much each is used, and which keys can use it.", `<button class="btn ghost" id="mRefresh">${icon("refresh")}Reload list</button>`);
+  if (!state.models || force) main.innerHTML = head + loading();
+  try { await Promise.all([loadModels(force), loadKeys()]); } catch (e) { main.innerHTML = head + `<div class="callout red">${icon("warn")}${esc(e.message)}</div>`; return; }
+  if (currentView() !== "models") return;
+  const M = state.models;
+  const groups = {};
+  M.models.forEach((m) => { groups[m.group] = (groups[m.group] || 0) + 1; });
+  main.innerHTML = head + `
+    ${M.catalogError ? `<div class="callout red" style="margin-bottom:12px">${icon("warn")}${esc(M.catalogError)}</div>` : ""}
+    <div class="toolbar reveal" style="--i:1">
+      <label class="search">${icon("search")}<input id="mSearch" placeholder="Search models" value="${esc(state.modelSearch)}"></label>
+      <div class="chips"><button class="chip ${state.modelGroup === "all" ? "on" : ""}" data-g="all">All<span class="n">${M.models.length}</span></button><button class="chip ${state.modelGroup === "used" ? "on" : ""}" data-g="used">Used<span class="n">${M.models.filter((m) => m.usageAll).length}</span></button>${Object.entries(groups).sort((a, b) => b[1] - a[1]).map(([g, n]) => `<button class="chip ${state.modelGroup === g ? "on" : ""}" data-g="${esc(g)}">${esc(g)}<span class="n">${n}</span></button>`).join("")}</div>
+    </div>
+    <div class="card reveal" style="--i:2"><div class="table-wrap"><table>
+      <thead><tr><th>Model</th><th>Context</th><th>Abilities</th><th class="r">Tokens, 30 days</th><th class="r">Requests</th><th>Last used</th><th>Keys allowed</th></tr></thead>
+      <tbody id="mBody"></tbody></table></div></div>`;
+  $("#mRefresh").onclick = () => renderModels(true);
+  $("#mSearch").addEventListener("input", (e) => { state.modelSearch = e.target.value; fillModelRows(); });
+  $$(".chip[data-g]").forEach((c) => c.addEventListener("click", () => { state.modelGroup = c.dataset.g; renderModels(); }));
+  fillModelRows();
+}
+
+function keysAllowing(id) { return (state.keys || []).filter((k) => !k.models || k.models.includes(id)); }
+
+function fillModelRows() {
+  const M = state.models, q = state.modelSearch.trim().toLowerCase();
+  const keyCount = (state.keys || []).length;
+  const rows = M.models
+    .filter((m) => (state.modelGroup === "all" || (state.modelGroup === "used" ? !!m.usageAll : m.group === state.modelGroup)) && (!q || m.id.toLowerCase().includes(q)))
+    .sort((a, b) => ((b.usage30d?.input || 0) + (b.usage30d?.output || 0)) - ((a.usage30d?.input || 0) + (a.usage30d?.output || 0)) || keysAllowing(b.id).filter((k) => k.models).length - keysAllowing(a.id).filter((k) => k.models).length);
+  const body = $("#mBody");
+  if (!rows.length) { body.innerHTML = `<tr><td colspan="7"><div class="empty"><span class="serif">No models found</span>Try another search or filter.</div></td></tr>`; return; }
+  body.innerHTML = rows.map((m) => {
+    const u = m.usage30d, allowed = keysAllowing(m.id), explicit = allowed.filter((k) => k.models).length, viaAll = allowed.length - explicit;
+    const ab = [m.reasoning && "reasoning", m.tools && "tools", m.vision && "vision"].filter(Boolean).map((t) => `<span class="tag">${t}</span>`).join(" ");
+    const usageCell = m.aliasOf ? `<span class="muted" style="font-size:12.5px">counted on ${esc(m.aliasOf)}</span>` : u ? `${short(u.input + u.output)}<div class="ksub">${short(u.input)} in · ${short(u.output)} out</div>` : `<span class="muted">0</span>`;
+    return `<tr class="click" data-model="${esc(m.id)}">
+      <td><div class="kname mono" style="font-size:13px">${esc(m.id)}</div><div class="ksub">${m.aliasOf ? "alias of " + esc(m.aliasOf) : esc(m.ownedBy || m.group)}</div></td>
+      <td class="mono muted num">${m.contextLength ? short(m.contextLength) : "-"}</td>
+      <td style="white-space:nowrap">${ab || `<span class="muted">-</span>`}</td>
+      <td class="r num mono">${usageCell}</td>
+      <td class="r num mono">${m.aliasOf ? `<span class="muted">-</span>` : u ? fmt.format(u.requests) : `<span class="muted">0</span>`}</td>
+      <td class="muted">${m.aliasOf ? "-" : m.usageAll?.lastUsed ? relative(m.usageAll.lastUsed) : "Never"}</td>
+      <td><span class="tag">${allowed.length} of ${keyCount}</span>${viaAll && explicit ? `<div class="ksub">${viaAll} via all-models</div>` : ""}</td></tr>`;
+  }).join("");
+  $$("tr[data-model]", body).forEach((tr) => tr.addEventListener("click", () => openModelAccess(tr.dataset.model)));
+}
+
+function openModelAccess(modelId) {
+  const m = state.models.models.find((x) => x.id === modelId);
+  const keys = state.keys || [];
+  openModal(`<div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head"><div class="eyebrow">Model access</div><h2 class="serif" style="font-size:24px;font-family:var(--mono);letter-spacing:0">${esc(modelId)}</h2><p>Turn this model on or off for each key.${m?.aliasOf ? ` This is another name for <span class="mono">${esc(m.aliasOf)}</span>; allowing one does not allow the other.` : ""}</p></div>
+    <div class="modal-body" style="gap:0">
+      ${m?.usageAll ? `<div class="callout blue" style="margin-bottom:12px">${icon("cube")}<div>${short(m.usageAll.input + m.usageAll.output)} tokens used all time over ${fmt.format(m.usageAll.requests)} requests${m.aliasOf ? "" : " (including requests made under its other names)"}.</div></div>` : ""}
+      ${keys.length ? keys.map((k) => {
+        const all = !k.models, on = all || k.models.includes(modelId);
+        return `<div class="list-row"><div class="grow"><div class="name">${esc(k.name)}</div><div class="ksub">${all ? "Allowed: this key can use all models" : `${k.models.length} model${k.models.length === 1 ? "" : "s"} allowed`}</div></div>${statusPill(k.status)}
+          <label class="switch" title="${all ? "Change this key to 'Only selected' in its settings to restrict it" : ""}"><input type="checkbox" data-k="${k.id}" ${on ? "checked" : ""} ${all ? "disabled" : ""} aria-label="Allow for ${esc(k.name)}"><span></span></label></div>`;
+      }).join("") : `<div class="muted">No keys yet.</div>`}
+    </div>
+    <div class="modal-foot"><button class="btn" data-close>Done</button></div></div>`);
+  $$("[data-k]").forEach((c) => c.addEventListener("change", async () => {
+    const k = keys.find((x) => x.id === c.dataset.k);
+    const next = new Set(k.models || []);
+    c.checked ? next.add(modelId) : next.delete(modelId);
+    if (!next.size) { c.checked = true; return toast(`"${k.name}" needs at least one model. Allow another model first, or set it to all models.`, true); }
+    c.disabled = true;
+    try {
+      await api(`/admin/api/keys/${k.id}`, { method: "PATCH", body: { models: [...next] } });
+      k.models = [...next];
+      toast(`${c.checked ? "Allowed" : "Removed"} for "${k.name}".`);
+      if (currentView() === "models") fillModelRows();
+      $(".ksub", c.closest(".list-row")).textContent = `${next.size} model${next.size === 1 ? "" : "s"} allowed`;
+    } catch (e) { c.checked = !c.checked; toast(e.message, true); }
+    finally { c.disabled = false; }
+  }));
+}
+
+// =============== PROVIDERS ===============
+async function renderProviders(force) {
+  const main = $("#main");
+  const head = pageHead("Providers", "Provider balances", "Credits left on your provider accounts, and roughly how many tokens that buys.", `<button class="btn ghost" id="pRefresh">${icon("refresh")}Check now</button>`);
+  main.innerHTML = head + loading();
+  $("#pRefresh").onclick = () => renderProviders(true);
+  let d;
+  try { d = await api("/admin/api/providers" + (force ? "?refresh=1" : "")); } catch (e) { main.innerHTML = head + `<div class="callout red">${icon("warn")}${esc(e.message)}</div>`; $("#pRefresh").onclick = () => renderProviders(true); return; }
+  if (currentView() !== "providers") return;
+  applyProviderCount(d);
+  const credits = (n) => (n == null ? "-" : Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 }));
+  const active = d.providers.filter((p) => p.isActive);
+  const inactive = d.providers.filter((p) => !p.isActive);
+
+  // Capacity: tokens promised to keys vs tokens the providers can still supply.
+  let capacity = "";
+  if (active.some((p) => p.estimate)) {
+    const over = d.committed > d.tokensAvailable;
+    capacity = `<div class="card card-pad reveal" style="--i:1;margin-bottom:12px">
+      <div class="card-title"><h3>Can your providers cover your keys?</h3>${over || d.unlimitedKeys ? `<span class="pill ${over ? "red" : "yellow"}">${over ? "Not enough" : "Check"}</span>` : `<span class="pill green">Covered</span>`}</div>
+      <div class="grid g-2" style="gap:24px">
+        <div><div class="eyebrow">Tokens left on keys</div><div class="stat"><div class="v serif num">${splitShort(d.committed)[0]}<small>${splitShort(d.committed)[1]}</small></div></div><div class="muted" style="font-size:13px">What all active keys could still use, added up${d.unlimitedKeys ? `, plus <b style="color:var(--ink)">${d.unlimitedKeys}</b> key${d.unlimitedKeys === 1 ? "" : "s"} with no limit` : ""}.</div></div>
+        <div><div class="eyebrow">Tokens the providers can supply</div><div class="stat"><div class="v serif num">≈ ${splitShort(d.tokensAvailable)[0]}<small>${splitShort(d.tokensAvailable)[1]}</small></div></div><div class="muted" style="font-size:13px">Estimated from the credits left and the credits your requests have used so far.</div></div>
+      </div>
+      ${over ? `<div class="callout red" style="margin-top:16px">${icon("warn")}<div>Your keys can use about <b>${short(d.committed - d.tokensAvailable)}</b> more tokens than your provider credits cover. If they all get used, requests will start failing before the keys run out.</div></div>` : ""}
+      ${!over && d.unlimitedKeys ? `<div class="callout yellow" style="margin-top:16px">${icon("warn")}<div>Keys with no limit can use all of your provider credits.</div></div>` : ""}
+    </div>`;
+  }
+
+  const card = (p, i) => {
+    const c = p.credit, e = p.estimate;
+    const pct = c && c.total ? Math.max(0, Math.min(100, (c.remaining / c.total) * 100)) : null;
+    const tone = pct == null ? "" : pct <= 10 ? " over" : "";
+    const [tv, tu] = e ? splitShort(e.tokensLeft) : ["", ""];
+    const when = p.fetchedAt ? `${p.live ? "Checked" : "Last synced"} ${relative(p.fetchedAt)}` : "Not checked yet";
+    return `<div class="card card-pad reveal" style="--i:${i + 2}">
+      <div class="card-title" style="align-items:flex-start">
+        <div style="min-width:0"><h3 style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</h3><div class="ksub">${esc(p.provider)}${p.plan ? " · " + esc(p.plan) : ""} · ${esc(when)}</div></div>
+        ${p.isActive ? (p.testStatus && p.testStatus !== "active" ? `<span class="pill yellow">${esc(p.testStatus)}</span>` : `<span class="pill green">Active</span>`) : `<span class="pill gray">${esc(p.testStatus || "Off")}</span>`}
+      </div>
+      ${p.liveError ? `<div class="callout yellow" style="margin-bottom:12px">${icon("warn")}<div>Could not check live: ${esc(p.liveError)}. Showing the last synced numbers.</div></div>` : ""}
+      ${c ? `
+        <div class="grid g-2" style="gap:24px;align-items:end">
+          <div><div class="eyebrow">Credits left</div><div class="balance-big serif num" style="margin-top:12px">${credits(c.remaining)}</div><div class="muted" style="margin-top:6px">of <b style="color:var(--ink)">${credits(c.total)}</b> · ${credits(c.used)} used${c.resetAt ? ` · resets ${dFmt.format(toDate(c.resetAt))} (${relative(c.resetAt)})` : ""}</div></div>
+          <div style="text-align:right">${e ? `<div class="eyebrow">Estimated tokens left</div><div class="balance-big serif num" style="margin-top:12px">≈ ${tv}<small>${tu}</small></div><div class="muted" style="margin-top:6px">at about <b style="color:var(--ink)">${credits(e.rate.creditsPerMillion)}</b> credits per 1M tokens</div>` : `<div class="eyebrow">Estimated tokens left</div><div class="muted" style="margin-top:12px">Not enough usage yet to estimate.<br>Send a few requests through OmniRoute first.</div>`}</div>
+        </div>
+        ${pct != null ? `<div class="bigbar"><i class="${tone ? "over" : "in"}" style="width:${pct}%"></i></div><div class="legend" style="justify-content:space-between"><span>${pct.toFixed(0)}% of credits left</span>${e ? `<span>Rate measured over ${fmt.format(e.rate.requests)} request${e.rate.requests === 1 ? "" : "s"} (${short(e.rate.input)} in · ${short(e.rate.output)} out)</span>` : ""}</div>` : ""}
+        ${e && e.creditsElsewhere != null && e.creditsElsewhere > Math.max(1, c.used * 0.05) ? `<div class="callout blue" style="margin-top:16px">${icon("warn")}<div><b>${credits(e.creditsElsewhere)}</b> of the ${credits(c.used)} credits used this period did not go through OmniRoute, for example from using this account directly in its own app. That use also takes from the same balance.</div></div>` : ""}
+        ${e && e.rate.requests < 50 ? `<div class="hint" style="margin-top:12px">The estimate is based on few requests so far, so treat it as rough. Output tokens and long prompts cost more credits than short ones, so the real number depends on how the keys are used.</div>` : ""}
+      ` : p.quotas.length ? `<div class="table-wrap"><table><thead><tr><th>Quota</th><th class="r">Left</th><th class="r">Total</th><th>Resets</th></tr></thead><tbody>${p.quotas.slice(0, 12).map((q) => `<tr><td class="mono" style="font-size:12.5px">${esc(q.name)}</td><td class="r num mono">${q.unlimited ? "Unlimited" : credits(q.remaining)}</td><td class="r num mono">${q.unlimited ? "-" : credits(q.total)}</td><td class="muted">${q.resetAt ? relative(q.resetAt) : "-"}</td></tr>`).join("")}</tbody></table></div>${p.quotas.length > 12 ? `<div class="hint">and ${p.quotas.length - 12} more</div>` : ""}`
+        : `<div class="muted">This provider does not report a balance.</div>`}
+    </div>`;
+  };
+
+  main.innerHTML = head + capacity +
+    (active.length ? `<div class="grid" style="gap:12px">${active.map(card).join("")}</div>` : `<div class="card"><div class="empty"><span class="serif">No active providers</span>Connect one in the OmniRoute dashboard.</div></div>`) +
+    (inactive.length ? `<div class="eyebrow" style="margin:28px 0 12px">Inactive connections</div><div class="grid" style="gap:12px">${inactive.map((p, i) => card(p, i + active.length)).join("")}</div>` : "");
+  $("#pRefresh").onclick = () => renderProviders(true);
+}
+
+// =============== layer helpers ===============
+function openModal(html) {
+  const layer = $("#layer");
+  const hadDrawer = !!$(".drawer", layer);
+  const holder = document.createElement("div");
+  holder.className = "modal-holder";
+  holder.innerHTML = `<div class="scrim top" data-close></div>${html}`;
+  if (!hadDrawer) layer.innerHTML = "";
+  layer.append(holder);
+  bindClose(holder, true);
+}
+function bindClose(root, modalOnly) {
+  $$("[data-close]", root).forEach((el) => el.addEventListener("click", () => (modalOnly ? closeTopModal() : closeLayer())));
+}
+function closeTopModal() { const h = $$("#layer .modal-holder").pop(); if (h) h.remove(); else closeLayer(); }
+function closeLayer() { $("#layer").innerHTML = ""; closeMenu(); }
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($("#menu")) return closeMenu(); if ($("#layer .modal-holder")) return closeTopModal(); closeLayer(); } });
+
+// =============== boot ===============
+(async () => {
+  try {
+    const s = await api("/admin/api/session");
+    state.portalUrl = s.portalUrl || state.portalUrl;
+    s.signedIn ? showApp() : showSignin();
+  } catch { showSignin(); }
+})();
+})();
+</script>
+</body>
+</html>

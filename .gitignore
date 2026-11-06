@@ -1,0 +1,11 @@
+# Never commit data: keys, usage, provider credentials, tunnel credentials, .env (STORAGE_ENCRYPTION_KEY).
+data/
+app/node_modules/
+*.pid
+*.log
+.env
+.env.*
+*.sqlite
+*.sqlite-*
+omniroute.json
+cert.pem
