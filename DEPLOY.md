@@ -26,6 +26,8 @@ The OmniRoute key service runs as one Coolify app on the same VPS as KHStream (2
   are deleted. Copy backups off the server regularly.
 
 ## Corrections to VPS-DEPLOY.md
+- Do **not** run OmniRoute headless (`--headless` / `OMNIROUTE_HEADLESS`): headless turns the dashboard off
+  (`{"error":"dashboard disabled (headless)"}`), and omni.nexus-api.tech needs it.
 - On Linux OmniRoute ignores `HOSTNAME`; the bind setting is `OMNIROUTE_SERVER_HOST`. Inside the container it is
   `0.0.0.0` (the container itself is not reachable from the internet).
 - `STORAGE_ENCRYPTION_KEY` is present in `data\.env` but **empty**, so provider credentials are still stored in
