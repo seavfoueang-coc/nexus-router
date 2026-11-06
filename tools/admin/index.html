@@ -323,7 +323,7 @@
     </nav>
     <div class="side-foot">
       <a id="portalLink" href="#" target="_blank" rel="noopener"><svg class="i"><use href="#i-link"/></svg><span class="lbl">User portal</span></a>
-      <a href="http://localhost:20128" target="_blank" rel="noopener"><svg class="i"><use href="#i-link"/></svg><span class="lbl">OmniRoute dashboard</span></a>
+      <a id="omniLink" href="http://127.0.0.1:20128/dashboard" target="_blank" rel="noopener"><svg class="i"><use href="#i-link"/></svg><span class="lbl">OmniRoute dashboard</span></a>
       <button id="logout" type="button"><svg class="i"><use href="#i-out"/></svg><span class="lbl">Sign out</span></button>
     </div>
   </aside>
@@ -408,7 +408,7 @@ async function copy(text, btn) {
 }
 
 // =============== state ===============
-const state = { keys: null, models: null, overview: null, portalUrl: "http://127.0.0.1:20130", keyFilter: "all", keySearch: "", modelSearch: "", modelGroup: "all" };
+const state = { keys: null, models: null, overview: null, portalUrl: "http://127.0.0.1:20130", omniUrl: "http://127.0.0.1:20128/dashboard", keyFilter: "all", keySearch: "", modelSearch: "", modelGroup: "all" };
 
 // =============== auth ===============
 function showSignin() {
@@ -421,6 +421,7 @@ function showApp() {
   $("#signin").classList.add("hidden");
   $("#app").classList.remove("hidden");
   $("#portalLink").href = state.portalUrl;
+  $("#omniLink").href = state.omniUrl;
   route();
   refreshProviderCount();
 }
@@ -1106,6 +1107,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($("#
   try {
     const s = await api("/admin/api/session");
     state.portalUrl = s.portalUrl || state.portalUrl;
+    state.omniUrl = s.omniUrl || state.omniUrl;
     s.signedIn ? showApp() : showSignin();
   } catch { showSignin(); }
 })();

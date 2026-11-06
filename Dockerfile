@@ -28,7 +28,6 @@ RUN chmod 755 docker/*.sh
 ENV DATA_DIR=/data \
     PORT=20128 \
     NODE_ENV=production \
-    OMNIROUTE_HEADLESS=true \
     TZ=Asia/Phnom_Penh
 
 VOLUME ["/data"]

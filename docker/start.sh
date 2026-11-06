@@ -29,7 +29,8 @@ wait_for() { # url, seconds
 
 trap 'echo "[start] stopping"; kill 0; exit 0' TERM INT
 
-run omniroute /opt/router/app/node_modules/.bin/omniroute serve --headless --no-open --no-tray &
+# Not headless: headless mode turns the OmniRoute dashboard off (404), and it is served at OMNI_PUBLIC_HOST.
+run omniroute /opt/router/app/node_modules/.bin/omniroute serve --no-open --no-tray &
 if wait_for "http://127.0.0.1:${PORT:-20128}/api/health" 180 || wait_for "http://127.0.0.1:${PORT:-20128}/" 30; then
   echo "[start] omniroute is up"
 else

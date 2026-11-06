@@ -641,7 +641,10 @@ async function route(req, res) {
   if (path === "/admin/api/session" && method === "GET") {
     // The address users are given. Set "publicUrl" in data/admin.json; falls back to the local portal.
     const publicUrl = String(readConfig().publicUrl || "").replace(/\/+$/, "");
-    return sendJson(res, 200, { signedIn: !!sessionOf(req, scope), portalUrl: publicUrl || `http://127.0.0.1:${PORTAL_PORT}` });
+    // The OmniRoute dashboard link: its own public host when signed in through the public admin site,
+    // otherwise the local port (PC or SSH tunnel).
+    const omniUrl = scope !== "local" && OMNI_PUBLIC_HOST ? `https://${OMNI_PUBLIC_HOST}/dashboard` : `http://127.0.0.1:${OMNI_PORT}/dashboard`;
+    return sendJson(res, 200, { signedIn: !!sessionOf(req, scope), portalUrl: publicUrl || `http://127.0.0.1:${PORTAL_PORT}`, omniUrl });
   }
   if (path === "/admin/api/login" && method === "POST") {
     const { password } = await readJson(req);
