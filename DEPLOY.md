@@ -9,7 +9,13 @@ The OmniRoute key service runs as one Coolify app on the same VPS as KHStream (2
   management API with the CLI token, which OmniRoute only accepts from loopback.
 - **Public address**: `api.nexus-api.tech` through the existing Cloudflare Tunnel, now started inside the container
   (`TUNNEL_ENABLED=true`). No DNS change, no open ports, no Coolify domain.
-- **Private dashboards**: 20128 and 20140 are published on the server's loopback only. From the PC:
+- **Public dashboards** (live since 2026-11-06), both through the same tunnel to the admin process on 20140, never
+  straight to OmniRoute (VPS-DEPLOY.md section 9):
+  - https://admin.nexus-api.tech: admin dashboard, sign in with the OmniRoute dashboard password.
+  - https://omni.nexus-api.tech: OmniRoute dashboard. First the gate page (same password), then OmniRoute's own login.
+  - 5 wrong passwords from one IP lock that IP out for 15 minutes. Sessions end after 2 h idle or 12 h at most.
+  - Set by Coolify env `ADMIN_PUBLIC_HOST` / `OMNI_PUBLIC_HOST`; empty = host not routed. DNS: CNAMEs to the tunnel.
+- **Dashboards over SSH (fallback)**: 20128 and 20140 are also published on the server's loopback. From the PC:
   ```powershell
   ssh -i $env:USERPROFILE\.ssh\khstream_vps -N -L 20140:127.0.0.1:20140 -L 20128:127.0.0.1:20128 root@217.15.162.153
   ```
