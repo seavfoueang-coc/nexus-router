@@ -372,11 +372,22 @@ async function modelsView(force) {
   const ids = new Set(catalog.map((m) => m.id));
   const strip = (id) => (id.includes("/") ? id.slice(id.indexOf("/") + 1) : id);
   const checks = readChecks();
+  // An alias swaps one path part for the provider's own id: kr/x -> kiro/x, no-think/kr/x -> no-think/kiro/x.
+  const canonicalOf = (m) => {
+    if (!m.ownedBy) return null;
+    const parts = m.id.split("/");
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (parts[i] === m.ownedBy) continue;
+      const cand = [...parts.slice(0, i), m.ownedBy, ...parts.slice(i + 1)].join("/");
+      if (cand !== m.id && ids.has(cand)) return cand;
+    }
+    return null;
+  };
   return {
     catalogError,
     checkJob: checkJob(),
     models: catalog.map((m) => {
-      const canonicalId = m.ownedBy && m.group !== m.ownedBy && ids.has(`${m.ownedBy}/${strip(m.id)}`) ? `${m.ownedBy}/${strip(m.id)}` : null;
+      const canonicalId = canonicalOf(m);
       const own = canonicalId ? null : usageKey(m.ownedBy || m.group, strip(m.id));
       return {
         ...m,
