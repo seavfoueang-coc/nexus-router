@@ -69,6 +69,9 @@
   .pill.gray { background: var(--hover); color: var(--muted); }
   .tag { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 4px; border: 1px solid var(--line); background: var(--surface-2); font: 11.5px/1.5 var(--mono); color: var(--ink-2); white-space: nowrap; }
   .tag.blue { background: var(--blue-bg); color: var(--blue); border-color: transparent; }
+.tag.green { background: var(--green-bg); color: var(--green); border-color: transparent; }
+.tag.red { background: var(--red-bg); color: var(--red); border-color: transparent; }
+.tag.yellow { background: var(--yellow-bg); color: var(--yellow); border-color: transparent; }
 
   /* ---------- layout ---------- */
   .app { display: grid; grid-template-columns: var(--side) 1fr; min-height: 100vh; }
@@ -475,8 +478,26 @@ async function loadKeys(force) {
 }
 async function loadModels(force) {
   if (!state.models || force) state.models = await api("/admin/api/models" + (force ? "?refresh=1" : ""));
-  $("#navModels").textContent = state.models.models.length || "";
+  $("#navModels").textContent = state.models.models.filter((m) => !m.aliasOf && m.check?.status !== "broken").length || "";
   return state.models;
+}
+
+// One provider model can be listed under two names (kiro/x and kr/x). They are the same model, but OmniRoute
+// checks key access by the exact name, so the dashboard always allows or removes both names together.
+function modelIndex(models) {
+  const byId = new Map(models.map((m) => [m.id, m]));
+  const aliasesOf = {};
+  models.forEach((m) => { if (m.aliasOf) (aliasesOf[m.aliasOf] ||= []).push(m.id); });
+  const canon = (id) => byId.get(id)?.aliasOf || id;
+  const family = (id) => { const c = canon(id); return [c, ...(aliasesOf[c] || [])]; };
+  const status = (id) => byId.get(id)?.check?.status || byId.get(canon(id))?.check?.status || null;
+  return { byId, aliasesOf, canon, family, status };
+}
+function checkTag(check) {
+  if (!check) return "";
+  if (check.status === "ok") return `<span class="tag green" title="Answered a test request ${esc(relative(check.at))}">works</span>`;
+  if (check.status === "broken") return `<span class="tag red" title="${esc(check.message || "")}">rejected</span>`;
+  return `<span class="tag yellow" title="${esc((check.code ? check.code + ": " : "") + (check.message || ""))}">failed check</span>`;
 }
 
 // =============== chart ===============
@@ -774,8 +795,12 @@ async function openKeyEditor(id, { focus } = {}) {
   const editing = !!id;
   let d = null;
   if (editing) { try { d = await api(`/admin/api/keys/${id}`); } catch (e) { toast(e.message, true); return; } }
-  let catalog = [];
-  try { catalog = (await loadModels()).models.map((m) => m.id); } catch {}
+  let catalogModels = [];
+  try { catalogModels = (await loadModels()).models; } catch {}
+  const idx = modelIndex(catalogModels);
+  // One row per real model: aliases are folded into their main name, models the provider rejects are hidden.
+  const catalog = catalogModels.filter((m) => !m.aliasOf && m.check?.status !== "broken").map((m) => m.id);
+  const hiddenBroken = catalogModels.filter((m) => !m.aliasOf && m.check?.status === "broken").length;
 
   const f = {
     name: d?.name || "",
@@ -785,7 +810,7 @@ async function openKeyEditor(id, { focus } = {}) {
     expDays: "30",
     expDate: d?.expiresAt ? (() => { const x = toDate(d.expiresAt); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; })() : "",
     modelsMode: d && !d.models ? "all" : d?.models ? "some" : "some",
-    models: new Set(d?.models || []),
+    models: new Set((d?.models || []).map((m) => idx.canon(m))),
   };
   if (!editing && !catalog.length) f.modelsMode = "all";
   const usedNow = d?.limit?.used ?? 0;
@@ -861,8 +886,8 @@ async function openKeyEditor(id, { focus } = {}) {
     visible.forEach((m) => { const g = m.includes("/") ? m.split("/")[0] : "other"; (groups[g] ||= []).push(m); });
     box.innerHTML = `<div class="model-picker">
       <div class="mp-head">${icon("search")}<input id="mpSearch" placeholder="Search models, or type an exact ID and press Enter" value="${esc(pickerSearch)}"></div>
-      <div class="mp-list">${Object.keys(groups).length ? Object.entries(groups).map(([g, ms]) => `<div class="mp-group"><span>${esc(g)} · ${ms.length}</span><button type="button" data-g="${esc(g)}">${ms.every((m) => f.models.has(m)) ? "Clear" : "Select all"}</button></div>${ms.map((m) => `<label class="mp-item"><input type="checkbox" data-m="${esc(m)}" ${f.models.has(m) ? "checked" : ""}>${esc(m)}</label>`).join("")}`).join("") : `<div class="mp-item muted">${catalog.length ? "No match. Press Enter to add this exact model ID." : "Could not load the model list. Type a model ID and press Enter."}</div>`}</div>
-      <div class="mp-foot"><span><b style="color:var(--ink)">${f.models.size}</b> selected</span>${f.models.size ? `<button type="button" id="mpClear">Clear all</button>` : ""}</div></div>`;
+      <div class="mp-list">${Object.keys(groups).length ? Object.entries(groups).map(([g, ms]) => `<div class="mp-group"><span>${esc(g)} · ${ms.length}</span><button type="button" data-g="${esc(g)}">${ms.every((m) => f.models.has(m)) ? "Clear" : "Select all"}</button></div>${ms.map((m) => `<label class="mp-item"><input type="checkbox" data-m="${esc(m)}" ${f.models.has(m) ? "checked" : ""}>${esc(m)}${idx.aliasesOf[m] ? `<span class="ksub" title="Same model under another name; allowed together">+ ${esc(idx.aliasesOf[m].join(", "))}</span>` : ""}${idx.status(m) === "broken" ? `<span class="tag red" title="The provider rejects this model ID. Remove it.">rejected</span>` : ""}</label>`).join("")}`).join("") : `<div class="mp-item muted">${catalog.length ? "No match. Press Enter to add this exact model ID." : "Could not load the model list. Type a model ID and press Enter."}</div>`}</div>
+      <div class="mp-foot"><span><b style="color:var(--ink)">${f.models.size}</b> selected${hiddenBroken ? ` <span class="muted">· ${hiddenBroken} models the provider rejects are hidden</span>` : ""}</span>${f.models.size ? `<button type="button" id="mpClear">Clear all</button>` : ""}</div></div>`;
     const s = $("#mpSearch");
     s.addEventListener("input", () => { pickerSearch = s.value; const pos = s.selectionStart; renderPicker(); const n = $("#mpSearch"); n.focus(); n.setSelectionRange(pos, pos); });
     s.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); const v = s.value.trim(); if (v) { f.models.add(v); pickerSearch = ""; renderPicker(); $("#mpSearch").focus(); } } });
@@ -894,7 +919,7 @@ async function openKeyEditor(id, { focus } = {}) {
     if (exp === undefined) return (err.textContent = "Pick when the key expires.");
     if (exp && new Date(exp).getTime() <= Date.now()) return (err.textContent = "The expiry date must be in the future.");
     if (f.modelsMode === "some" && !f.models.size) return (err.textContent = "Pick at least one model, or allow all models.");
-    const models = f.modelsMode === "all" ? null : [...f.models];
+    const models = f.modelsMode === "all" ? null : [...new Set([...f.models].flatMap((m) => idx.family(m)))];
     const btn = $("#fSave"); btn.disabled = true;
     try {
       if (!editing) {
@@ -945,7 +970,7 @@ function showCreated(c) {
 // =============== MODELS ===============
 async function renderModels(force) {
   const main = $("#main");
-  const head = pageHead("Models", "Models and access", "Every model OmniRoute offers, how much each is used, and which keys can use it.", `<button class="btn ghost" id="mRefresh">${icon("refresh")}Reload list</button>`);
+  const head = pageHead("Models", "Models and access", "Every model OmniRoute offers, how much each is used, and which keys can use it. Check models sends one tiny request to each so you can see which ones really work.", `<button class="btn ghost" id="mCheck">${icon("refresh")}Check models</button><button class="btn ghost" id="mRefresh">${icon("refresh")}Reload list</button>`);
   if (!state.models || force) main.innerHTML = head + loading();
   try { await Promise.all([loadModels(force), loadKeys()]); } catch (e) { main.innerHTML = head + `<div class="callout red">${icon("warn")}${esc(e.message)}</div>`; return; }
   if (currentView() !== "models") return;
@@ -962,19 +987,58 @@ async function renderModels(force) {
       <thead><tr><th>Model</th><th>Context</th><th>Abilities</th><th class="r">Tokens, 30 days</th><th class="r">Requests</th><th>Last used</th><th>Keys allowed</th></tr></thead>
       <tbody id="mBody"></tbody></table></div></div>`;
   $("#mRefresh").onclick = () => renderModels(true);
+  $("#mCheck").onclick = startModelCheck;
+  if (M.checkJob?.running) watchModelCheck();
   $("#mSearch").addEventListener("input", (e) => { state.modelSearch = e.target.value; fillModelRows(); });
   $$(".chip[data-g]").forEach((c) => c.addEventListener("click", () => { state.modelGroup = c.dataset.g; renderModels(); }));
   fillModelRows();
 }
 
-function keysAllowing(id) { return (state.keys || []).filter((k) => !k.models || k.models.includes(id)); }
+function keysAllowing(id) {
+  const fam = state.models ? modelIndex(state.models.models).family(id) : [id];
+  return (state.keys || []).filter((k) => !k.models || fam.some((x) => k.models.includes(x)));
+}
+
+// Check the models in the current filter (main names only; an alias shares its main model's result).
+async function startModelCheck() {
+  const M = state.models, q = state.modelSearch.trim().toLowerCase();
+  const ids = M.models
+    .filter((m) => !m.aliasOf && (state.modelGroup === "all" || (state.modelGroup === "used" ? !!m.usageAll : m.group === state.modelGroup)) && (!q || m.id.toLowerCase().includes(q)))
+    .map((m) => m.id);
+  if (!ids.length) return toast("No models to check in this view.", true);
+  if (ids.length > 400) return toast(`That is ${ids.length} models. Pick a group or search first (400 at most).`, true);
+  try {
+    await api("/admin/api/models/check", { method: "POST", body: { ids } });
+    toast(`Checking ${ids.length} model${ids.length === 1 ? "" : "s"}. This takes about ${Math.max(1, Math.round(ids.length / 3 * 2 / 60))} min.`);
+    watchModelCheck();
+  } catch (e) { toast(e.message, true); }
+}
+let checkTimer = null;
+function watchModelCheck() {
+  clearTimeout(checkTimer);
+  const btn = $("#mCheck");
+  const tick = async () => {
+    let job = null;
+    try { job = (await api("/admin/api/models/check")).job; } catch {}
+    const b = $("#mCheck");
+    if (job?.running) {
+      if (b) { b.disabled = true; b.textContent = `Checking ${job.done} of ${job.total}`; }
+      checkTimer = setTimeout(tick, 3000);
+    } else {
+      if (job?.error) toast(`Model check stopped: ${job.error}`, true);
+      if (currentView() === "models") renderModels(true); else state.models = null;
+    }
+  };
+  if (btn) btn.disabled = true;
+  tick();
+}
 
 function fillModelRows() {
   const M = state.models, q = state.modelSearch.trim().toLowerCase();
   const keyCount = (state.keys || []).length;
   const rows = M.models
     .filter((m) => (state.modelGroup === "all" || (state.modelGroup === "used" ? !!m.usageAll : m.group === state.modelGroup)) && (!q || m.id.toLowerCase().includes(q)))
-    .sort((a, b) => ((b.usage30d?.input || 0) + (b.usage30d?.output || 0)) - ((a.usage30d?.input || 0) + (a.usage30d?.output || 0)) || keysAllowing(b.id).filter((k) => k.models).length - keysAllowing(a.id).filter((k) => k.models).length);
+    .sort((a, b) => ((a.check?.status === "broken") - (b.check?.status === "broken")) || ((b.usage30d?.input || 0) + (b.usage30d?.output || 0)) - ((a.usage30d?.input || 0) + (a.usage30d?.output || 0)) || keysAllowing(b.id).filter((k) => k.models).length - keysAllowing(a.id).filter((k) => k.models).length);
   const body = $("#mBody");
   if (!rows.length) { body.innerHTML = `<tr><td colspan="7"><div class="empty"><span class="serif">No models found</span>Try another search or filter.</div></td></tr>`; return; }
   body.innerHTML = rows.map((m) => {
@@ -982,7 +1046,7 @@ function fillModelRows() {
     const ab = [m.reasoning && "reasoning", m.tools && "tools", m.vision && "vision"].filter(Boolean).map((t) => `<span class="tag">${t}</span>`).join(" ");
     const usageCell = m.aliasOf ? `<span class="muted" style="font-size:12.5px">counted on ${esc(m.aliasOf)}</span>` : u ? `${short(u.input + u.output)}<div class="ksub">${short(u.input)} in · ${short(u.output)} out</div>` : `<span class="muted">0</span>`;
     return `<tr class="click" data-model="${esc(m.id)}">
-      <td><div class="kname mono" style="font-size:13px">${esc(m.id)}</div><div class="ksub">${m.aliasOf ? "alias of " + esc(m.aliasOf) : esc(m.ownedBy || m.group)}</div></td>
+      <td><div class="kname mono" style="font-size:13px">${esc(m.id)} ${checkTag(m.check)}</div><div class="ksub">${m.aliasOf ? "alias of " + esc(m.aliasOf) : esc(m.ownedBy || m.group)}</div></td>
       <td class="mono muted num">${m.contextLength ? short(m.contextLength) : "-"}</td>
       <td style="white-space:nowrap">${ab || `<span class="muted">-</span>`}</td>
       <td class="r num mono">${usageCell}</td>
@@ -995,13 +1059,15 @@ function fillModelRows() {
 
 function openModelAccess(modelId) {
   const m = state.models.models.find((x) => x.id === modelId);
+  const fam = modelIndex(state.models.models).family(modelId);
+  const others = fam.filter((x) => x !== modelId);
   const keys = state.keys || [];
   openModal(`<div class="modal" role="dialog" aria-modal="true">
-    <div class="modal-head"><div class="eyebrow">Model access</div><h2 class="serif" style="font-size:24px;font-family:var(--mono);letter-spacing:0">${esc(modelId)}</h2><p>Turn this model on or off for each key.${m?.aliasOf ? ` This is another name for <span class="mono">${esc(m.aliasOf)}</span>; allowing one does not allow the other.` : ""}</p></div>
+    <div class="modal-head"><div class="eyebrow">Model access</div><h2 class="serif" style="font-size:24px;font-family:var(--mono);letter-spacing:0">${esc(modelId)}</h2><p>Turn this model on or off for each key.${others.length ? ` Same model as <span class="mono">${esc(others.join(", "))}</span>; both names are allowed or removed together.` : ""}</p>${m?.check?.status === "broken" ? `<div class="callout red" style="margin-top:10px">${icon("warn")}<div>The provider rejects this model ID (${esc(m.check.message || "invalid model")}). Keys should not use it.</div></div>` : ""}</div>
     <div class="modal-body" style="gap:0">
       ${m?.usageAll ? `<div class="callout blue" style="margin-bottom:12px">${icon("cube")}<div>${short(m.usageAll.input + m.usageAll.output)} tokens used all time over ${fmt.format(m.usageAll.requests)} requests${m.aliasOf ? "" : " (including requests made under its other names)"}.</div></div>` : ""}
       ${keys.length ? keys.map((k) => {
-        const all = !k.models, on = all || k.models.includes(modelId);
+        const all = !k.models, on = all || fam.some((x) => k.models.includes(x));
         return `<div class="list-row"><div class="grow"><div class="name">${esc(k.name)}</div><div class="ksub">${all ? "Allowed: this key can use all models" : `${k.models.length} model${k.models.length === 1 ? "" : "s"} allowed`}</div></div>${statusPill(k.status)}
           <label class="switch" title="${all ? "Change this key to 'Only selected' in its settings to restrict it" : ""}"><input type="checkbox" data-k="${k.id}" ${on ? "checked" : ""} ${all ? "disabled" : ""} aria-label="Allow for ${esc(k.name)}"><span></span></label></div>`;
       }).join("") : `<div class="muted">No keys yet.</div>`}
@@ -1010,7 +1076,7 @@ function openModelAccess(modelId) {
   $$("[data-k]").forEach((c) => c.addEventListener("change", async () => {
     const k = keys.find((x) => x.id === c.dataset.k);
     const next = new Set(k.models || []);
-    c.checked ? next.add(modelId) : next.delete(modelId);
+    c.checked ? fam.forEach((x) => next.add(x)) : fam.forEach((x) => next.delete(x));
     if (!next.size) { c.checked = true; return toast(`"${k.name}" needs at least one model. Allow another model first, or set it to all models.`, true); }
     c.disabled = true;
     try {

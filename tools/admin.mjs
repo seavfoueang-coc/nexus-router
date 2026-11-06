@@ -44,6 +44,8 @@ import {
   startPasswordGuard,
 } from "./omni-gate.mjs";
 
+import { checkJob, readChecks, startCheck } from "./modelcheck.mjs";
+
 const TOOLS_DIR = dirname(fileURLToPath(import.meta.url));
 const OMNI_PORT = Number(process.env.PORT || 20128);
 // Bind address. Default loopback (the PC). In the container it is 0.0.0.0, published on the server's loopback only.
@@ -369,14 +371,18 @@ async function modelsView(force) {
   const usageAll = new Map(perModelUsage("0000").map((m) => [usageKey(m.provider, m.model), m]));
   const ids = new Set(catalog.map((m) => m.id));
   const strip = (id) => (id.includes("/") ? id.slice(id.indexOf("/") + 1) : id);
+  const checks = readChecks();
   return {
     catalogError,
+    checkJob: checkJob(),
     models: catalog.map((m) => {
       const canonicalId = m.ownedBy && m.group !== m.ownedBy && ids.has(`${m.ownedBy}/${strip(m.id)}`) ? `${m.ownedBy}/${strip(m.id)}` : null;
       const own = canonicalId ? null : usageKey(m.ownedBy || m.group, strip(m.id));
       return {
         ...m,
         aliasOf: canonicalId,
+        // An alias is the same upstream model, so it shares its canonical model's check result.
+        check: checks[m.id] || (canonicalId ? checks[canonicalId] : null) || null,
         usage30d: own ? usage30.get(own) || null : null,
         usageAll: own ? usageAll.get(own) || null : null,
       };
@@ -666,6 +672,14 @@ async function route(req, res) {
   if (path === "/admin/api/overview" && method === "GET") return sendJson(res, 200, await overview());
   if (path === "/admin/api/providers" && method === "GET") return sendJson(res, 200, await providersView(url.searchParams.get("refresh") === "1"));
   if (path === "/admin/api/models" && method === "GET") return sendJson(res, 200, await modelsView(url.searchParams.get("refresh") === "1"));
+  if (path === "/admin/api/models/check" && method === "GET") return sendJson(res, 200, { job: checkJob() });
+  if (path === "/admin/api/models/check" && method === "POST") {
+    const body = await readJson(req);
+    const ids = Array.isArray(body.ids) ? body.ids.map(String) : [];
+    if (!ids.length) return sendJson(res, 400, { error: "No models to check." });
+    if (!startCheck(ids)) return sendJson(res, 409, { error: "A check is already running." });
+    return sendJson(res, 202, { job: checkJob() });
+  }
   if (path === "/admin/api/keys" && method === "GET") return sendJson(res, 200, { keys: await keyRows() });
 
   if (path === "/admin/api/keys" && method === "POST") {
