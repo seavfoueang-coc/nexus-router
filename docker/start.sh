@@ -43,18 +43,24 @@ if [ "${TUNNEL_ENABLED:-false}" = "true" ]; then
   CRED="$DATA_DIR/cloudflared/omniroute.json"
   if [ -f "$CRED" ]; then
     TUNNEL_ID=$(sed -n 's/.*"TunnelID"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$CRED")
-    cat > /tmp/cloudflared.yml <<EOF
-tunnel: ${TUNNEL_ID}
-credentials-file: ${CRED}
-no-autoupdate: true
-ingress:
-  - hostname: ${TUNNEL_HOSTNAME:-api.nexus-api.tech}
-    service: http://127.0.0.1:${PORTAL_PORT:-20130}
-    originRequest:
-      connectTimeout: 30s
-      keepAliveTimeout: 10m
-  - service: http_status:404
-EOF
+    {
+      echo "tunnel: ${TUNNEL_ID}"
+      echo "credentials-file: ${CRED}"
+      echo "no-autoupdate: true"
+      echo "ingress:"
+      echo "  - hostname: ${TUNNEL_HOSTNAME:-api.nexus-api.tech}"
+      echo "    service: http://127.0.0.1:${PORTAL_PORT:-20130}"
+      echo "    originRequest:"
+      echo "      connectTimeout: 30s"
+      echo "      keepAliveTimeout: 10m"
+      # Public dashboards go to admin.mjs (login + gate), never straight to OmniRoute's 20128.
+      for h in ${ADMIN_PUBLIC_HOST:-} ${OMNI_PUBLIC_HOST:-}; do
+        echo "  - hostname: ${h}"
+        echo "    service: http://127.0.0.1:${ADMIN_PORT:-20140}"
+      done
+      echo "  - service: http_status:404"
+    } > /tmp/cloudflared.yml
+    echo "[start] tunnel routes: $(grep -c 'hostname:' /tmp/cloudflared.yml) hostnames"
     run tunnel cloudflared --no-autoupdate tunnel --config /tmp/cloudflared.yml run &
   else
     echo "[start] TUNNEL_ENABLED=true but $CRED is missing; tunnel not started"

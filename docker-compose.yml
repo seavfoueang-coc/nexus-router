@@ -15,6 +15,9 @@ services:
       # Turn the tunnel on only after the data is copied and the PC's tunnel is stopped (one connector at a time).
       TUNNEL_ENABLED: ${TUNNEL_ENABLED:-false}
       TUNNEL_HOSTNAME: ${TUNNEL_HOSTNAME:-api.nexus-api.tech}
+      # Public dashboards behind one login (tools/omni-gate.mjs). Empty = private (SSH tunnel only).
+      ADMIN_PUBLIC_HOST: ${ADMIN_PUBLIC_HOST:-}
+      OMNI_PUBLIC_HOST: ${OMNI_PUBLIC_HOST:-}
     volumes:
       - router-data:/data
       # Stable machine id, so OmniRoute's CLI token stays the same across redeploys.

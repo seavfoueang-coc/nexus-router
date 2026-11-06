@@ -25,6 +25,25 @@ import {
   getKey,
 } from "./keyops.mjs";
 
+import {
+  ADMIN_PUBLIC_HOST,
+  OMNI_PUBLIC_HOST,
+  GATE_COOKIE,
+  clientIp,
+  hostKind,
+  isLoopbackPeer,
+  lockedFor,
+  originOk,
+  proxyHttp,
+  proxyUpgrade,
+  publicState,
+  recordFailure,
+  recordSuccess,
+  sendGateLogin,
+  sendNotReady,
+  startPasswordGuard,
+} from "./omni-gate.mjs";
+
 const TOOLS_DIR = dirname(fileURLToPath(import.meta.url));
 const OMNI_PORT = Number(process.env.PORT || 20128);
 // Bind address. Default loopback (the PC). In the container it is 0.0.0.0, published on the server's loopback only.
@@ -37,8 +56,12 @@ const PAGE_FILE = join(TOOLS_DIR, "admin", "index.html");
 
 const ALLOWED_HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`]);
 const ALLOWED_ORIGINS = new Set([`http://127.0.0.1:${PORT}`, `http://localhost:${PORT}`]);
+if (ADMIN_PUBLIC_HOST) ALLOWED_ORIGINS.add(`https://${ADMIN_PUBLIC_HOST}`);
 const SESSION_COOKIE = "omr_admin";
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+// Public hosts: shorter idle timeout and a hard limit, Secure cookies.
+const PUBLIC_IDLE_MS = 2 * 60 * 60 * 1000;
+const PUBLIC_MAX_MS = 12 * 60 * 60 * 1000;
 
 // ---------- config ----------
 
@@ -59,7 +82,7 @@ function writeConfig(cfg) {
 
 // ---------- sessions & login ----------
 
-const sessions = new Map(); // token -> expiresAt
+const sessions = new Map(); // token -> { exp, abs, scope: "local" | "admin" | "omni" }
 
 function parseCookies(header) {
   const out = {};
@@ -70,16 +93,33 @@ function parseCookies(header) {
   return out;
 }
 
-function sessionOf(req) {
-  const token = parseCookies(req.headers.cookie)[SESSION_COOKIE];
+const cookieNameFor = (scope) => (scope === "omni" ? GATE_COOKIE : SESSION_COOKIE);
+
+function sessionOf(req, scope = "local") {
+  const token = parseCookies(req.headers.cookie)[cookieNameFor(scope)];
   if (!token) return null;
-  const expiresAt = sessions.get(token);
-  if (!expiresAt || expiresAt < Date.now()) {
+  const s = sessions.get(token);
+  const now = Date.now();
+  if (!s || s.scope !== scope || s.exp < now || (s.abs && s.abs < now)) {
     sessions.delete(token);
     return null;
   }
-  sessions.set(token, Date.now() + SESSION_TTL_MS); // sliding expiry
+  s.exp = now + (scope === "local" ? SESSION_TTL_MS : PUBLIC_IDLE_MS); // sliding expiry
   return token;
+}
+
+function newSession(scope) {
+  const token = randomBytes(32).toString("hex");
+  const now = Date.now();
+  sessions.set(token, scope === "local"
+    ? { exp: now + SESSION_TTL_MS, abs: 0, scope }
+    : { exp: now + PUBLIC_IDLE_MS, abs: now + PUBLIC_MAX_MS, scope });
+  return token;
+}
+
+function sessionCookie(scope, token, maxAgeSec) {
+  const secure = scope === "local" ? "" : "; Secure"; // public hosts are HTTPS (Cloudflare); host-only, no Domain
+  return `${cookieNameFor(scope)}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAgeSec}${secure}`;
 }
 
 const loginAttempts = { count: 0, resetAt: 0 };
@@ -552,16 +592,39 @@ const PAGE_HEADERS = {
     "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
 };
 
+/** Password check shared by the admin login and the OmniRoute gate. Applies the global limit, and on public
+ *  hosts the per-IP lockout. Returns { ok } or { status, error }. */
+async function checkLogin(req, scope, password) {
+  const ip = clientIp(req);
+  if (scope !== "local") {
+    const wait = lockedFor(ip);
+    if (wait) return { status: 429, error: `Too many failed sign-ins. Try again in ${Math.ceil(wait / 60000)} minutes.` };
+  }
+  if (!allowLoginAttempt()) return { status: 429, error: "Too many sign-in attempts. Wait a few minutes." };
+  if (typeof password !== "string" || !password || password.length > 512) return { status: 400, error: "Enter your password." };
+  if (!(await verifyPassword(password))) {
+    if (scope !== "local") recordFailure(ip, scope === "omni" ? OMNI_PUBLIC_HOST : ADMIN_PUBLIC_HOST);
+    return { status: 401, error: "Wrong password." };
+  }
+  if (scope !== "local") recordSuccess(ip);
+  return { ok: true };
+}
+
 async function route(req, res) {
-  // Block DNS-rebinding and cross-site requests.
-  if (!ALLOWED_HOSTS.has(String(req.headers.host || "").toLowerCase())) return sendJson(res, 421, { error: "Wrong host." });
+  // Block DNS-rebinding and cross-site requests. Public hosts only arrive through cloudflared (loopback peer),
+  // which always sets cf-connecting-ip; without it OmniRoute would see the request as coming from 127.0.0.1.
+  const kind = hostKind(req, ALLOWED_HOSTS);
+  if (!kind || (kind !== "local" && (!isLoopbackPeer(req) || !req.headers["cf-connecting-ip"]))) return sendJson(res, 421, { error: "Wrong host." });
+  if (kind !== "local" && publicState() !== true) return sendNotReady(res);
+  if (kind === "omni") return omniGate(req, res);
+  const scope = kind; // "local" | "admin"
   const url = new URL(req.url || "/", `http://${req.headers.host}`);
   const path = url.pathname;
   const method = req.method || "GET";
 
   if (method === "GET" && path === "/") {
     const page = readFileSync(PAGE_FILE);
-    res.writeHead(200, { ...PAGE_HEADERS, "content-length": page.length });
+    res.writeHead(200, { ...PAGE_HEADERS, ...(scope === "local" ? {} : { "strict-transport-security": "max-age=31536000" }), "content-length": page.length });
     return res.end(page);
   }
 
@@ -569,7 +632,8 @@ async function route(req, res) {
 
   if (method !== "GET") {
     const origin = req.headers.origin;
-    if (!origin || !ALLOWED_ORIGINS.has(origin)) return sendJson(res, 403, { error: "Cross-site request blocked." });
+    const wanted = scope === "local" ? ALLOWED_ORIGINS.has(origin) && !String(origin).startsWith("https://") : origin === `https://${ADMIN_PUBLIC_HOST}`;
+    if (!origin || !wanted) return sendJson(res, 403, { error: "Cross-site request blocked." });
     if (req.headers["x-admin-request"] !== "1") return sendJson(res, 403, { error: "Missing request header." });
   }
 
@@ -577,26 +641,23 @@ async function route(req, res) {
   if (path === "/admin/api/session" && method === "GET") {
     // The address users are given. Set "publicUrl" in data/admin.json; falls back to the local portal.
     const publicUrl = String(readConfig().publicUrl || "").replace(/\/+$/, "");
-    return sendJson(res, 200, { signedIn: !!sessionOf(req), portalUrl: publicUrl || `http://127.0.0.1:${PORTAL_PORT}` });
+    return sendJson(res, 200, { signedIn: !!sessionOf(req, scope), portalUrl: publicUrl || `http://127.0.0.1:${PORTAL_PORT}` });
   }
   if (path === "/admin/api/login" && method === "POST") {
-    if (!allowLoginAttempt()) return sendJson(res, 429, { error: "Too many sign-in attempts. Wait a few minutes." });
     const { password } = await readJson(req);
-    if (typeof password !== "string" || !password || password.length > 512) return sendJson(res, 400, { error: "Enter your password." });
-    if (!(await verifyPassword(password))) return sendJson(res, 401, { error: "Wrong password." });
-    const token = randomBytes(32).toString("hex");
-    sessions.set(token, Date.now() + SESSION_TTL_MS);
-    return sendJson(res, 200, { ok: true }, {
-      "set-cookie": `${SESSION_COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_TTL_MS / 1000}`,
-    });
+    const result = await checkLogin(req, scope, password);
+    if (!result.ok) return sendJson(res, result.status, { error: result.error });
+    const token = newSession(scope);
+    const maxAge = (scope === "local" ? SESSION_TTL_MS : PUBLIC_MAX_MS) / 1000;
+    return sendJson(res, 200, { ok: true }, { "set-cookie": sessionCookie(scope, token, maxAge) });
   }
   if (path === "/admin/api/logout" && method === "POST") {
     const token = parseCookies(req.headers.cookie)[SESSION_COOKIE];
     if (token) sessions.delete(token);
-    return sendJson(res, 200, { ok: true }, { "set-cookie": `${SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0` });
+    return sendJson(res, 200, { ok: true }, { "set-cookie": sessionCookie(scope, "", 0) });
   }
 
-  if (!sessionOf(req)) return sendJson(res, 401, { error: "Sign in first." });
+  if (!sessionOf(req, scope)) return sendJson(res, 401, { error: "Sign in first." });
 
   // --- data endpoints ---
   if (path === "/admin/api/overview" && method === "GET") return sendJson(res, 200, await overview());
@@ -645,6 +706,49 @@ async function route(req, res) {
   return sendJson(res, 404, { error: "Not found" });
 }
 
+/** omni.<domain>: gate login, then everything goes to OmniRoute (which still asks for its own login). */
+async function omniGate(req, res) {
+  const url = new URL(req.url || "/", "https://gate");
+  const method = req.method || "GET";
+  if (url.pathname === "/__gate/login" && method === "POST") {
+    if (req.headers.origin !== `https://${OMNI_PUBLIC_HOST}` || req.headers["x-admin-request"] !== "1") {
+      return sendJson(res, 403, { error: "Cross-site request blocked." });
+    }
+    const { password } = await readJson(req);
+    const result = await checkLogin(req, "omni", password);
+    if (!result.ok) return sendJson(res, result.status, { error: result.error });
+    return sendJson(res, 200, { ok: true }, { "set-cookie": sessionCookie("omni", newSession("omni"), PUBLIC_MAX_MS / 1000) });
+  }
+  if (url.pathname === "/__gate/logout") {
+    const token = parseCookies(req.headers.cookie)[GATE_COOKIE];
+    if (token) sessions.delete(token);
+    return sendJson(res, 200, { ok: true }, { "set-cookie": sessionCookie("omni", "", 0) });
+  }
+  if (!sessionOf(req, "omni")) {
+    const wantsPage = method === "GET" && /text\/html/.test(String(req.headers.accept || ""));
+    return wantsPage ? sendGateLogin(res) : sendJson(res, 401, { error: "Sign in first." });
+  }
+  if (!originOk(req)) return sendJson(res, 403, { error: "Cross-site request blocked." });
+  return proxyHttp(req, res);
+}
+
+// WebSocket upgrades: only the omni host, only with a gate session and a same-site Origin.
+function onUpgrade(req, socket, head) {
+  const kind = hostKind(req, ALLOWED_HOSTS);
+  const ok =
+    kind === "omni" &&
+    isLoopbackPeer(req) &&
+    !!req.headers["cf-connecting-ip"] &&
+    publicState() === true &&
+    sessionOf(req, "omni") &&
+    req.headers.origin === `https://${OMNI_PUBLIC_HOST}`;
+  if (!ok) {
+    socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+    return;
+  }
+  proxyUpgrade(req, socket, head);
+}
+
 const server = http.createServer((req, res) => {
   route(req, res).catch((error) => {
     const known = error instanceof KeyOpsError;
@@ -653,6 +757,10 @@ const server = http.createServer((req, res) => {
     else res.destroy();
   });
 });
+
+server.on("upgrade", onUpgrade);
+server.requestTimeout = 0; // the OmniRoute proxy can stream for a long time
+if (ADMIN_PUBLIC_HOST || OMNI_PUBLIC_HOST) startPasswordGuard(verifyPassword);
 
 server.listen(PORT, HOST, () => {
   writeFileSync(PID_FILE, String(process.pid));
